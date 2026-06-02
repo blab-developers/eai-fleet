@@ -19,12 +19,12 @@ test: ci-test
 # ── CI source of truth ──────────────────────────────────────────────────────
 
 ci-lint: ## ruff + pyright
-	ruff check src tests
-	ruff format --check src tests
-	pyright src
+	ruff check .
+	ruff format --check .
+	pyright .
 
-ci-test: ## pytest (in-memory SQLite; no Docker)
-	pytest tests/ -q --timeout=60
+ci-test: ## pytest (fake Prometheus; no Docker, no cluster)
+	pytest -q --timeout=60
 
 ci-build: ## build + tag the config-free image
 	-docker pull $(IMAGE):latest

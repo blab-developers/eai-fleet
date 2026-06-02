@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "eai-nano-fleet-mgr"
-version = "0.1.0"
+version = "0.1.1"
 description = "Central fleet manager for the eai-nano Jetson fleet (KubeEdge)"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.110",
     "uvicorn[standard]>=0.29",
-    "sqlmodel>=0.0.16",
+    "httpx2>=2.0",
     "pydantic>=2.6",
     "pydantic-settings>=2.0",
 ]
@@ -19,15 +19,18 @@ dependencies = [
 dev = [
     "pytest>=8.0",
     "pytest-timeout>=2.0",
-    "httpx>=0.27",
     "ruff>=0.4",
     "pyright>=1.1",
 ]
 
 [project.scripts]
-fleet-mgr = "nano_fleet.main:run"
+fleet-mgr = "main:run"
 
-[tool.setuptools.packages.find]
+# Flat layout — the repo IS the service. Top-level app modules + the routers package
+# (tests are not packaged into the image).
+[tool.setuptools]
+py-modules = ["main", "config", "models", "prometheus_query"]
+packages = ["routers"]
 
 [tool.ruff]
 line-length = 100
@@ -36,4 +39,5 @@ line-length = 100
 select = ["E", "F", "I", "UP", "B"]
 
 [tool.pytest.ini_options]
-testpaths = ["nano_fleet/tests"]
+testpaths = ["tests"]
+pythonpath = ["."]
