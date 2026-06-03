@@ -55,9 +55,9 @@ lint:
       - .pip-cache/
   before_script:
     - *ca-script
-    # pyright's bundled node binary needs libatomic1 on python:3.12-slim
-    # (same fix that eai-paper-planner CI carries).
-    - apt-get update && apt-get install -y --no-install-recommends libatomic1
+    # python:3.12-slim doesn't ship `make` (needed by `make ci-lint`) or
+    # libatomic1 (needed by pyright's bundled node binary).
+    - apt-get update && apt-get install -y --no-install-recommends make libatomic1
     - pip install -e ".[dev]"
   script:
     - make ci-lint
@@ -77,6 +77,8 @@ test:
       - .pip-cache/
   before_script:
     - *ca-script
+    # python:3.12-slim doesn't ship `make` (needed by `make ci-test`).
+    - apt-get update && apt-get install -y --no-install-recommends make
     - pip install -e ".[dev]"
   script:
     - make ci-test
