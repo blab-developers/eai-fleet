@@ -13,7 +13,11 @@ class Settings(BaseSettings):
     one thing it needs is where central Prometheus lives.
     """
 
-    model_config = SettingsConfigDict(case_sensitive=False)
+    # env_prefix="EAI_" puts every field-derived env var under the project's
+    # namespace. Field names stay short (settings.prometheus_url, settings.
+    # fleet_port, …) but the deployer must export EAI_PROMETHEUS_URL,
+    # EAI_FLEET_PORT, etc. case_sensitive=False keeps the read tolerant.
+    model_config = SettingsConfigDict(case_sensitive=False, env_prefix="EAI_")
 
     prometheus_url: str = "http://localhost:9090"
     prometheus_timeout_s: float = 5.0

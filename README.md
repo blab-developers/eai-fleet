@@ -51,10 +51,10 @@ Environment (12-factor; injected by the eai-infra `eai-fleet` Ansible role):
 
 | Var | Default | Meaning |
 |-----|---------|---------|
-| `PROMETHEUS_URL` | `http://localhost:9090` | central Prometheus base URL |
-| `PROMETHEUS_TIMEOUT_S` | `5.0` | per-query timeout |
-| `FLEET_PORT` | `8088` | HTTP port |
-| `LOG_LEVEL` | `INFO` | log level |
+| `EAI_PROMETHEUS_URL` | `http://localhost:9090` | central Prometheus base URL |
+| `EAI_PROMETHEUS_TIMEOUT_S` | `5.0` | per-query timeout |
+| `EAI_FLEET_PORT` | `8088` | HTTP port |
+| `EAI_LOG_LEVEL` | `INFO` | log level |
 
 ## Develop
 
