@@ -29,7 +29,7 @@ fleet-mgr = "main:run"
 # Flat layout — the repo IS the service. Top-level app modules + the routers package
 # (tests are not packaged into the image).
 [tool.setuptools]
-py-modules = ["main", "config", "models", "prometheus_query"]
+py-modules = ["main", "config", "models", "prometheus_query", "k8s_client"]
 packages = ["routers"]
 
 [tool.ruff]

@@ -1,16 +1,20 @@
-"""Test fixtures — a fake Prometheus, no Docker, no cluster.
+"""Test fixtures — a fake Prometheus + fake k8s, no Docker, no cluster.
 
 The fleet view is derived from Prometheus (Spec 008), so tests inject a fake client
 that returns canned instant-query maps; the router + ``build_fleet_view`` logic is
 exercised end-to-end without a live Prometheus.
+
+The image-set endpoint also takes a k8s client dependency; tests inject a fake that
+records the PATCH it would have made instead of touching a real cluster.
 """
 
 import pytest
 from fastapi.testclient import TestClient
 
+from k8s_client import KubernetesUnavailable
 from main import app
 from prometheus_query import PrometheusUnavailable
-from routers.fleet import get_prometheus
+from routers.fleet import get_k8s, get_prometheus
 
 
 class FakePrometheus:
@@ -32,6 +36,26 @@ class FakePrometheus:
         return self.gauges.get(metric, {})
 
 
+class FakeK8s:
+    """Stands in for ``K8sClient`` — records the patch it would have made."""
+
+    def __init__(self) -> None:
+        # (namespace, name, container, image) tuples in call order.
+        self.patches: list[tuple[str, str, str, str]] = []
+        self.fail: KubernetesUnavailable | None = None
+
+    def patch_daemonset_image(
+        self,
+        namespace: str,
+        name: str,
+        container: str,
+        image: str,
+    ) -> None:
+        if self.fail is not None:
+            raise self.fail
+        self.patches.append((namespace, name, container, image))
+
+
 @pytest.fixture
 def fake_prom() -> FakePrometheus:
     """The canned Prometheus a test configures before calling the API."""
@@ -39,8 +63,15 @@ def fake_prom() -> FakePrometheus:
 
 
 @pytest.fixture
-def client(fake_prom: FakePrometheus):
-    """TestClient with the Prometheus dependency overridden by the fake."""
+def fake_k8s() -> FakeK8s:
+    """The canned k8s client a test configures before calling the API."""
+    return FakeK8s()
+
+
+@pytest.fixture
+def client(fake_prom: FakePrometheus, fake_k8s: FakeK8s):
+    """TestClient with both dependencies overridden by fakes."""
     app.dependency_overrides[get_prometheus] = lambda: fake_prom
+    app.dependency_overrides[get_k8s] = lambda: fake_k8s
     yield TestClient(app)
     app.dependency_overrides.clear()

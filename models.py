@@ -66,3 +66,34 @@ class HealthStatus(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     status: str
+
+
+class InferenceImageRequest(BaseModel):
+    """POST body for setting the inference image on a device."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    image: str = Field(min_length=1, description="Full container image ref including tag.")
+
+
+class ImageSetScope(StrEnum):
+    """Effective blast radius of a single image-set call.
+
+    v1 is always ``FLEET_WIDE`` because the inference workload is one DaemonSet
+    across all Nanos. ``DEVICE`` is reserved for when per-Nano control lands
+    (per-device Deployment or DaemonSet overlay).
+    """
+
+    FLEET_WIDE = "fleet-wide"
+    DEVICE = "device"
+
+
+class InferenceImageResponse(BaseModel):
+    """Response from ``POST /api/fleet/devices/{id}/inference/image``."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    device_id: str
+    image: str
+    scope: ImageSetScope
+    note: str

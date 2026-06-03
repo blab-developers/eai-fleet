@@ -1,16 +1,23 @@
 """Config from environment (12-factor; same image everywhere)."""
 
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Fleet-manager settings.
 
-    fleet-mgr holds **no** device state (Spec 008): it derives the fleet view by
-    reading central Prometheus — online/offline from KubeEdge node status
+    fleet-mgr holds **no** device state for the read side (Spec 008): the fleet view
+    is derived from central Prometheus — online/offline from KubeEdge node status
     (kube-state-metrics) and telemetry from the nano agents' remote_written
-    ``eai_inference_*`` series. So there is no database and no offline timer; the
-    one thing it needs is where central Prometheus lives.
+    ``eai_inference_*`` series.
+
+    The image-set endpoint (``POST /api/fleet/devices/{id}/inference/image``) is the
+    one mutating route. It strategic-merge-patches the inference DaemonSet in the
+    central k3s, reaching the API via the standard in-cluster auth files mounted
+    by the eai-infra ansible role. v1 is fleet-wide (the patch hits every Nano
+    that matches the DaemonSet's nodeSelector) — see the route docstring.
     """
 
     # env_prefix="EAI_" puts every field-derived env var under the project's
@@ -23,6 +30,21 @@ class Settings(BaseSettings):
     prometheus_timeout_s: float = 5.0
     fleet_port: int = 8088
     log_level: str = "INFO"
+
+    # --- Kubernetes (image-set endpoint) ---
+    # Defaults match the canonical in-cluster SA mount. The eai-infra role drops
+    # a token + the k3s CA at these paths for the docker container (not a Pod).
+    kubernetes_api_url: str = "https://kubernetes.default.svc"
+    kubernetes_token_path: Path = Path("/var/run/secrets/kubernetes.io/serviceaccount/token")
+    kubernetes_ca_path: Path = Path("/var/run/secrets/kubernetes.io/serviceaccount/ca.crt")
+    kubernetes_timeout_s: float = 10.0
+
+    # The DaemonSet the image-set endpoint targets. Defaults match
+    # eai-nano/deploy/10-inference.yaml. Override per environment if the manifest
+    # ever splits or renames.
+    inference_namespace: str = "eai-nano"
+    inference_daemonset: str = "eai-nano-inference"
+    inference_container: str = "inference"
 
 
 settings = Settings()
