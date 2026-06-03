@@ -1,0 +1,119 @@
+workflow:
+  auto_cancel:
+    on_new_commit: interruptible
+
+stages:
+  - validate
+  - build
+  - deploy
+
+variables:
+  REGISTRY: "registry.endoscopeai.com"
+  GIT_SSL_CAINFO: "$CI_SERVER_TLS_CA_FILE"
+  DOCKER_HOST: tcp://localhost:2375
+  DOCKER_TLS_CERTDIR: ""
+
+.dind-service: &dind-service
+  name: docker:24-dind
+  # Trust the corporate CA inside DinD before dockerd starts; otherwise
+  # `node:20-alpine` / `python:3.12-slim` pulls fail with
+  # x509 unknown-authority on Ochsner's MITM proxy. Same shape eai-catalog uses.
+  entrypoint:
+    - sh
+    - -c
+    - 'update-ca-certificates 2>/dev/null; exec dockerd-entrypoint.sh --insecure-registry=registry.default.svc.cluster.local:5000'
+
+.ca-script: &ca-script |
+  if [ -n "${CORPORATE_CA_CERT:-}" ]; then
+    cp "$CORPORATE_CA_CERT" /usr/local/share/ca-certificates/corporate.crt 2>/dev/null || true
+    git config --global http.sslCAInfo "$CORPORATE_CA_CERT" 2>/dev/null || true
+    export NODE_EXTRA_CA_CERTS="$CORPORATE_CA_CERT"
+  fi
+  update-ca-certificates 2>/dev/null || true
+
+.docker-build-before: &docker-build-before
+  - *ca-script
+  - sed -i 's|https://|http://|g' /etc/apk/repositories
+  - apk add --no-cache make bash
+  - until docker info >/dev/null 2>&1; do sleep 1; done
+
+default:
+  before_script:
+    - *ca-script
+
+# ---------- Validate ----------
+
+lint:
+  stage: validate
+  image: python:3.12-slim
+  interruptible: true
+  variables:
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+  cache:
+    key: pip-lint-py312
+    paths:
+      - .pip-cache/
+  before_script:
+    - *ca-script
+    # pyright's bundled node binary needs libatomic1 on python:3.12-slim
+    # (same fix that eai-paper-planner CI carries).
+    - apt-get update && apt-get install -y --no-install-recommends libatomic1
+    - pip install -e ".[dev]"
+  script:
+    - make ci-lint
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+test:
+  stage: validate
+  image: python:3.12-slim
+  interruptible: true
+  variables:
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+  cache:
+    key: pip-test-py312
+    paths:
+      - .pip-cache/
+  before_script:
+    - *ca-script
+    - pip install -e ".[dev]"
+  script:
+    - make ci-test
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+# ---------- Build ----------
+
+build:
+  stage: build
+  image: docker:24
+  interruptible: true
+  needs:
+    - job: lint
+    - job: test
+  services:
+    - *dind-service
+  before_script: *docker-build-before
+  script:
+    - make push GIT_SHA=$CI_COMMIT_SHA REGISTRY=$REGISTRY
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+
+# ---------- Deploy ----------
+# Shell runner on the host. eai-infra owns ansible + vault.
+
+deploy:
+  stage: deploy
+  tags: [deploy]
+  variables:
+    DOCKER_HOST: unix:///var/run/docker.sock
+  script:
+    - cd /usr/local/eai/workspace/eai-infra && make deploy-fleet-prod
+    - docker image prune -f
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  environment:
+    name: production
+    url: https://fleet.endoscopeai.com/
