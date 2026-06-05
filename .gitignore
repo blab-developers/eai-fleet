@@ -2,4 +2,12 @@ __pycache__/
 *.py[cod]
 *.egg-info/
 .venv/
+.pytest_cache/
+.ruff_cache/
 *.db
+
+# Frontend (apps/frontend has its own .gitignore too)
+node_modules/
+.svelte-kit/
+apps/frontend/build/
+apps/frontend/.yarn/
