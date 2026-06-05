@@ -28,6 +28,29 @@ The nano sends **no heartbeat** (removed in eai-nano Spec 008). State is **deriv
 The backend is a stateless read-through over central Prometheus: **no database, no heartbeat
 ingest**. The frontend talks only to the backend (`/api/*`, proxied by `hooks.server.ts`).
 
+## Data-flow standard — one gateway, read-only telemetry
+
+```
+ nano agents ──remote_write──▶ Prometheus ◀──read── fleet backend ◀──/api── browser
+                                   ▲                                          (UI)
+                                   └──read── Grafana  (separate; history only; <a href> only)
+```
+
+**The rule (don't deviate):**
+
+1. **Browser → backend only.** The frontend calls `/api/fleet/*` and nothing else — never
+   Prometheus or Grafana APIs. The "History" link is a plain `<a href>`, not a data call.
+2. **The backend is the single Prometheus reader for the app** — **read-only instant queries**
+   (`GET /api/v1/query`; no `remote_write`, no `query_range`/admin). It derives `FleetView` and owns
+   the online/state rules. The only write the service makes anywhere is the k8s DaemonSet image PATCH.
+3. **Grafana is a separate, independent read-only consumer** of the same Prometheus, for trends —
+   not in the app's data path.
+
+**Why:** same boundary rule as eai-nano/eai-catalog — *frontend → its own backend only; the backend
+owns all infra access (Prometheus + k8s)*. One typed contract (Pydantic → generated TS), PromQL stays
+server-side, and the write control (set-image) already needs a backend. The two surfaces split by
+**capability** — live snapshot + controls = the app; history = Grafana — not duplication.
+
 ## API
 
 - `GET /api/fleet/devices` → `FleetView`: per-device `health` (online/offline), `state`
