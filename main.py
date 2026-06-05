@@ -27,7 +27,7 @@ def run() -> None:
     """Console entrypoint (`fleet-mgr`). Binds 0.0.0.0 for containerized deployment."""
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=settings.fleet_port)
+    uvicorn.run(app, host="0.0.0.0", port=settings.port)
 
 
 if __name__ == "__main__":

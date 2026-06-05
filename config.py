@@ -20,15 +20,17 @@ class Settings(BaseSettings):
     that matches the DaemonSet's nodeSelector) — see the route docstring.
     """
 
-    # env_prefix="EAI_" puts every field-derived env var under the project's
-    # namespace. Field names stay short (settings.prometheus_url, settings.
-    # fleet_port, …) but the deployer must export EAI_PROMETHEUS_URL,
-    # EAI_FLEET_PORT, etc. case_sensitive=False keeps the read tolerant.
-    model_config = SettingsConfigDict(case_sensitive=False, env_prefix="EAI_")
+    # env_prefix="EAI_FLEET_" namespaces every field-derived env var to this
+    # service so it can't collide with another EAI_* app on the same host (e.g.
+    # eai-mlops also exports EAI_PROMETHEUS_URL). Fields stay short
+    # (settings.prometheus_url, settings.port, …); the deployer exports
+    # EAI_FLEET_PROMETHEUS_URL, EAI_FLEET_PORT, etc. case_sensitive=False keeps
+    # the read tolerant.
+    model_config = SettingsConfigDict(case_sensitive=False, env_prefix="EAI_FLEET_")
 
     prometheus_url: str = "http://localhost:9090"
     prometheus_timeout_s: float = 5.0
-    fleet_port: int = 8088
+    port: int = 8088
     log_level: str = "INFO"
 
     # --- Kubernetes (image-set endpoint) ---
