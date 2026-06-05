@@ -37,13 +37,17 @@ variables:
   - apk add --no-cache make bash
   - until docker info >/dev/null 2>&1; do sleep 1; done
 
+.validate-rules: &validate-rules
+  - if: $CI_COMMIT_BRANCH == "main"
+  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
 default:
   before_script:
     - *ca-script
 
 # ---------- Validate ----------
 
-lint:
+lint:backend:
   stage: validate
   image: python:3.12-slim
   interruptible: true
@@ -55,17 +59,15 @@ lint:
       - .pip-cache/
   before_script:
     - *ca-script
-    # python:3.12-slim doesn't ship `make` (needed by `make ci-lint`) or
+    # python:3.12-slim doesn't ship `make` (needed by the ci-* targets) or
     # libatomic1 (needed by pyright's bundled node binary).
     - apt-get update && apt-get install -y --no-install-recommends make libatomic1
-    - pip install -e ".[dev]"
+    - pip install -e "apps/backend[dev]"
   script:
-    - make ci-lint
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - make ci-lint-backend
+  rules: *validate-rules
 
-test:
+test:backend:
   stage: validate
   image: python:3.12-slim
   interruptible: true
@@ -77,24 +79,52 @@ test:
       - .pip-cache/
   before_script:
     - *ca-script
-    # python:3.12-slim doesn't ship `make` (needed by `make ci-test`).
     - apt-get update && apt-get install -y --no-install-recommends make
-    - pip install -e ".[dev]"
+    - pip install -e "apps/backend[dev]"
   script:
-    - make ci-test
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - make ci-test-backend
+  rules: *validate-rules
+
+frontend:
+  stage: validate
+  # Debian-based node image (not alpine) so we can apt-install python3 (for the
+  # gen:api drift check — it boots the backend's app.openapi(), needs fastapi) and
+  # the playwright browser deps. node:22 satisfies vite's >=22.12 requirement.
+  image: node:22
+  interruptible: true
+  variables:
+    YARN_CACHE_FOLDER: "$CI_PROJECT_DIR/.yarn-cache"
+    PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+  cache:
+    key: frontend-node22
+    paths:
+      - .yarn-cache/
+      - .pip-cache/
+  before_script:
+    - *ca-script
+    - apt-get update && apt-get install -y --no-install-recommends make python3 python3-pip python3-venv
+    # Backend deps so `yarn gen:api` can dump app.openapi() (falls back to python3
+    # on PATH when apps/backend/.venv is absent — as it is in CI).
+    - pip install --break-system-packages -e "apps/backend"
+    - corepack enable
+    - cd apps/frontend && yarn install --immutable && yarn playwright install --with-deps chromium && cd ../..
+  script:
+    - make ci-lint-frontend
+    - make ci-gen-types-check
+    - make ci-test-frontend
+  rules: *validate-rules
 
 # ---------- Build ----------
+# `make push` builds + pushes BOTH images (eai-fleet-backend + eai-fleet-frontend).
 
 build:
   stage: build
   image: docker:24
   interruptible: true
   needs:
-    - job: lint
-    - job: test
+    - job: lint:backend
+    - job: test:backend
+    - job: frontend
   services:
     - *dind-service
   before_script: *docker-build-before

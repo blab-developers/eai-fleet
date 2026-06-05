@@ -1,0 +1,18 @@
+{
+  "extends": "./.svelte-kit/tsconfig.json",
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": true
+  },
+  // A child `include` REPLACES the one in .svelte-kit/tsconfig.json, which is what
+  // pulls in ambient.d.ts (home of the generated $env types). List it so
+  // $env/dynamic/public imports resolve.
+  "include": ["src/**/*.ts", "src/**/*.svelte", ".svelte-kit/ambient.d.ts"]
+}

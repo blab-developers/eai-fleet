@@ -1,0 +1,4 @@
+# Normalize line endings to LF in the repo so the CI gen:api drift check
+# (`make ci-gen-types-check`) is stable across Windows dev + Linux CI — the
+# generated TS client is byte-identical regardless of where it was generated.
+* text=auto eol=lf

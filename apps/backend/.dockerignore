@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Git
+.git/
+.gitmodules
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+.logs/

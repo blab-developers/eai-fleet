@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eai-nano-fleet-mgr"
+version = "0.2.0"
+description = "Central fleet manager for the eai-nano Jetson fleet (KubeEdge)"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "httpx2>=2.0",
+    "pydantic>=2.6",
+    "pydantic-settings>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-timeout>=2.0",
+    "ruff>=0.4",
+    "pyright>=1.1",
+]
+
+[project.scripts]
+fleet-mgr = "app.main:run"
+
+# Standard src-layout: the `app` package is the service (mirrors eai-nano
+# apps/backend/app). Tests are not packaged into the image.
+[tool.setuptools]
+packages = ["app", "app.routers"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
