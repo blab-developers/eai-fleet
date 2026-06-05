@@ -1,13 +1,15 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
-  import Accordion from 'carbon-components-svelte/src/Accordion/Accordion.svelte';
-  import AccordionItem from 'carbon-components-svelte/src/Accordion/AccordionItem.svelte';
-  import Tag from 'carbon-components-svelte/src/Tag/Tag.svelte';
-  import Button from 'carbon-components-svelte/src/Button/Button.svelte';
-  import TextInput from 'carbon-components-svelte/src/TextInput/TextInput.svelte';
-  import InlineNotification from 'carbon-components-svelte/src/Notification/InlineNotification.svelte';
-  import Loading from 'carbon-components-svelte/src/Loading/Loading.svelte';
-  import ChartLine from 'carbon-icons-svelte/lib/ChartLine.svelte';
+  import {
+    Accordion,
+    AccordionItem,
+    Tag,
+    Button,
+    TextInput,
+    InlineNotification,
+    Loading,
+  } from 'carbon-components-svelte';
+  import { ChartLine } from 'carbon-icons-svelte';
   import { env } from '$env/dynamic/public';
   import { fleetStore } from '$lib/state.svelte';
   import { getErrorMessage } from '$lib/errors';
@@ -160,17 +162,18 @@
     margin-bottom: 1rem;
   }
   .summary {
-    display: flex;
-    gap: 2rem;
+    display: grid;
+    grid-auto-flow: column;
+    justify-content: start;
     align-items: center;
+    gap: 2rem;
     background-color: var(--cds-layer-01);
     border: 1px solid var(--cds-border-subtle-01);
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
   }
   .metric {
-    display: flex;
-    flex-direction: column;
+    display: grid;
   }
   .metric .label {
     font-size: 0.75rem;
@@ -188,7 +191,8 @@
     color: var(--cds-support-error);
   }
   .row-title {
-    display: inline-flex;
+    display: inline-grid;
+    grid-auto-flow: column;
     align-items: center;
     gap: 0.75rem;
   }
@@ -215,13 +219,11 @@
     color: var(--cds-text-primary);
   }
   .set-image {
-    display: flex;
-    align-items: flex-end;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
     gap: 0.5rem;
     margin-top: 0.5rem;
-  }
-  .set-image :global(.bx--form-item) {
-    flex: 1;
   }
   .empty {
     color: var(--cds-text-secondary);

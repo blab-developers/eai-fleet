@@ -1,0 +1,17 @@
+# Node
+node_modules/
+.svelte-kit/
+build/
+.yarn/
+
+# Git
+.git/
+.gitmodules
+
+# IDE
+.vscode/
+.idea/
+
+# Test artifacts
+test-results/
+playwright-report/

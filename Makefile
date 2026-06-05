@@ -10,6 +10,7 @@
 # see the same URL. CI overrides REGISTRY to the public DNS name when pushing.
 REGISTRY ?= localhost:30500
 GIT_SHA  ?= $(shell git rev-parse HEAD 2>/dev/null || echo unknown)
+CA_TRUST := --build-context ca-trust=ca-trust/
 # Image names match what eai-infra's eai-fleet role pulls. Keep them in sync.
 BACKEND_IMAGE  := $(REGISTRY)/eai-fleet-backend
 FRONTEND_IMAGE := $(REGISTRY)/eai-fleet-frontend
@@ -61,7 +62,7 @@ ci-build: ci-build-backend ci-build-frontend ## build both images
 
 ci-build-backend: ## build + tag the backend image
 	-docker pull $(BACKEND_IMAGE):latest
-	docker build \
+	docker build $(CA_TRUST) \
 		--cache-from $(BACKEND_IMAGE):latest \
 		--build-arg BUILDKIT_INLINE_CACHE=1 \
 		-t $(BACKEND_IMAGE):$(GIT_SHA) \

@@ -13,6 +13,7 @@
     "preview": "vite preview",
     "gen:api": "node scripts/gen-backend-api.mjs",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "test:unit": "vitest run",
     "test:e2e": "playwright test"
   },
   "devDependencies": {
@@ -21,11 +22,15 @@
     "@sveltejs/adapter-node": "^5.2.12",
     "@sveltejs/kit": "^2.61.1",
     "@sveltejs/vite-plugin-svelte": "^7.1.2",
+    "@testing-library/svelte": "^5.2.9",
     "@types/node": "^25.9.1",
+    "carbon-preprocess-svelte": "^0.11.30",
+    "happy-dom": "^20.10.1",
     "svelte": "^5.55.9",
     "svelte-check": "^4.4.8",
     "typescript": "^5.9.3",
-    "vite": "^8.0.14"
+    "vite": "^8.0.14",
+    "vitest": "^4.1.0"
   },
   "dependencies": {
     "@hey-api/client-fetch": "^0.13.1",

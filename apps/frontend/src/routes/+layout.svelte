@@ -1,8 +1,7 @@
 <script lang="ts">
   // Load IBM Carbon's g90 (dark) theme as a JS import so Vite bundles it.
   import 'carbon-components-svelte/css/g90.css';
-  import Header from 'carbon-components-svelte/src/UIShell/Header.svelte';
-  import HeaderUtilities from 'carbon-components-svelte/src/UIShell/HeaderUtilities.svelte';
+  import { Header, HeaderUtilities, Grid, Row, Column } from 'carbon-components-svelte';
   import { env } from '$env/dynamic/public';
   import { fleetStore } from '$lib/state.svelte';
 
@@ -20,18 +19,29 @@
 </Header>
 
 <main>
-  {@render children()}
+  <!-- Carbon v11 CSS-Grid layout (Grid/Row/Column) owns the page columns; routes render
+       their content inside the single full-width column. No flexbox — see AGENTS conventions. -->
+  <Grid>
+    <Row>
+      <Column>
+        {@render children()}
+      </Column>
+    </Row>
+  </Grid>
 </main>
 
 <style>
   main {
-    padding: 1.5rem 1rem;
+    /* Horizontal gutters come from the page's Carbon <Grid>; main owns only the
+       header offset + vertical rhythm + the centred max-width. */
+    padding: 1.5rem 0;
     margin-top: 3rem;
     max-width: 64rem;
   }
   .online,
   .grafana {
-    display: inline-flex;
+    display: inline-grid;
+    grid-auto-flow: column;
     align-items: center;
     padding: 0 1rem;
     font-size: 0.875rem;

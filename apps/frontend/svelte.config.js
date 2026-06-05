@@ -1,8 +1,12 @@
 import adapter from '@sveltejs/adapter-node';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
+import { optimizeImports } from 'carbon-preprocess-svelte';
 
 export default {
-  preprocess: [vitePreprocess()],
+  // optimizeImports rewrites barrel `import { X } from 'carbon-components-svelte'`
+  // to per-component deep imports at build — so components read cleanly while the
+  // bundle still tree-shakes.
+  preprocess: [vitePreprocess(), optimizeImports()],
   kit: {
     // adapter-node: the frontend ships as a self-contained Node server (`node build`)
     // in its own Docker container. hooks.server.ts proxies /api/* to the backend

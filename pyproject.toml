@@ -1,0 +1,16 @@
+# Root linter configuration for eai-fleet.
+# Backend deps live in apps/backend/pyproject.toml; this file only sets shared
+# tool config so lint rules are consistent across the repository.
+
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "strict"
+venvPath = "."
+venv = ".venv"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
