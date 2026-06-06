@@ -5,8 +5,9 @@
 [tool.pyright]
 pythonVersion = "3.12"
 typeCheckingMode = "strict"
-venvPath = "."
-venv = ".venv"
+# No venvPath here: the backend venv lives at apps/backend/.venv (pyright runs from
+# there), and CI installs into the system Python — so let pyright use the active
+# interpreter. A root venvPath="." pointed at a non-existent ./.venv and only warned.
 
 [tool.ruff]
 line-length = 100

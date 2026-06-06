@@ -28,23 +28,43 @@ additions; they do not override the universal rules.
 ## Frontend ↔ backend types
 
 - Generate with `@hey-api/openapi-ts` → `src/lib/generated/fleet-backend-api/`.
-- `hey-api.ts` uses `$env/dynamic/public` (runtime env) because `adapter-node`
-  evaluates env at request time. This is the **one exception** to the universal
-  `$env/static/public` rule — document it here.
-- No hand-written API wrapper.
+- `hey-api.ts` sets `baseUrl: ''` (same-origin): the browser always calls `/api/*` and
+  `hooks.server.ts` proxies it to the backend container — so no client-visible backend URL
+  is needed and there is no hand-written API wrapper.
+- **Runtime env via `$env/dynamic/public`** (not the universal `$env/static/public`) because
+  `adapter-node` evaluates env at request time — this is the **one exception** to the universal
+  rule. It is read where a value must be injected at deploy without a rebuild: the routes read
+  `EAI_FLEET_FRONTEND_GRAFANA_URL` (History deep-links), and `hooks.server.ts` reads
+  `EAI_FLEET_BACKEND_URL` from `$env/dynamic/private`.
 
 ## Build / deploy
 
+- **eai-fleet builds images; eai-infra deploys them — exactly like eai-catalog.** This repo
+  contains **NO Ansible, Helm, or k3s/k8s manifests.** CI (`validate→build→deploy`) builds the
+  two images, then the `deploy` job just triggers `cd …/eai-infra && make deploy-fleet-prod`;
+  the eai-infra `eai-fleet` Ansible role injects vault secrets and runs the containers. (The
+  one k8s touch in the code, `app/k8s.py`, is a runtime API *client* the backend uses to PATCH
+  the inference DaemonSet image — an app feature, not deploy infra.)
 - Config-free images; env/secrets injected at deploy by eai-infra Ansible+vault.
-- Corporate CA trust: `--build-context ca-trust=ca-trust/` in Docker builds.
-- No Helm — plain containers managed by Ansible (same as eai-nano).
+- Corporate CA trust: `--build-context ca-trust=ca-trust/` — **backend image only** (pip
+  behind the SSL-inspecting proxy). The frontend (`yarn`) image takes no CA context, same
+  as eai-catalog. The Makefile applies `$(CA_TRUST)` to `ci-build-backend` only.
+- **Frontend CSS minify — keep `css.lightningcss.errorRecovery: true` (load-bearing).**
+  vite 8 made lightningcss the default CSS minifier (vitejs/vite#21911); it throws on
+  Carbon v11's legacy `@media not all and (min-resolution >= 0.001dpcm)` hack. esbuild
+  isn't an option — SvelteKit forces `cssMinify = !!build.minify` and its config wins, so
+  `build.cssMinify: 'esbuild'` is ignored. `errorRecovery` downgrades the parse error to a
+  warning so CSS **and** JS still fully minify. Do **not** "fix" it with `build.minify:false`.
+- **Layout uses Carbon CSS-Grid** (`Grid`/`Row`/`Column`) for page columns — not custom
+  flexbox containers.
 
 ## Test infrastructure
 
-- `tests/unit/` only (stateless service; no DB fixtures needed).
+- `tests/unit/` — **Vitest** (`*.test.ts`) on the SvelteKit vitest plugin + happy-dom, so
+  imports resolve `$lib`/`$env` exactly like the app. Stateless service → no DB fixtures.
 - No factories (no ORM models to build). Use fakes/mocks for Prometheus and K8s clients.
-- E2E: Playwright with API mocking (`page.route`) — the backend is stateless so
-  real-process orchestration is not required.
+- E2E: **Playwright** (`*.spec.ts`) with API mocking (`page.route`) — the backend is
+  stateless so real-process orchestration is not required.
 
 ## Style
 
