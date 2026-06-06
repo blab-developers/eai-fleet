@@ -37,6 +37,20 @@ additions; they do not override the universal rules.
   `EAI_FLEET_FRONTEND_GRAFANA_URL` (History deep-links), and `hooks.server.ts` reads
   `EAI_FLEET_BACKEND_URL` from `$env/dynamic/private`.
 
+## Backend ↔ external services — NO codegen
+
+- **There is no backend↔service OpenAPI codegen.** The backend's outbound calls go to
+  **Prometheus** (PromQL HTTP, `prometheus.py`) and the **Kubernetes API** (`k8s.py`) —
+  neither is an OpenAPI service, so their responses are hand-parsed into strict Pydantic
+  (`DeviceView`, `FleetView` in `models.py`). There is **no `datamodel-code-generator`** and
+  **no generated Python client**; the only codegen in this repo is the frontend's hey-api TS
+  client (above).
+- **Contrast eai-nano:** nano's backend consumes the *inference* service's OpenAPI, so it
+  generates Pydantic models with `datamodel-code-generator` + a hand-written `httpx2` client
+  (`TODO(hey-api)` — interim until a real installable hey-api-for-Python ships, which would
+  then generate both the models and the client from one spec, like the frontend). **That note
+  does not apply here** — fleet has no such Python↔Python service boundary to generate from.
+
 ## Build / deploy
 
 - **eai-fleet builds images; eai-infra deploys them — exactly like eai-catalog.** This repo
