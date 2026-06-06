@@ -1,18 +1,23 @@
 /**
- * Runtime configuration for the generated @hey-api client.
+ * Runtime configuration for the generated @hey-api client (called once at client
+ * creation via `runtimeConfigPath`).
  *
- * `createClientConfig` is invoked once when the generated client is created
- * (src/lib/generated/fleet-backend-api/client.gen.ts), so this applies to every SDK
- * call without any hand-written wrapper.
+ * baseUrl resolution, in order:
+ *   1. `EAI_FLEET_FRONTEND_API_BASE_URL` if set — an explicit override (e.g. point dev at
+ *      a remote backend). Runtime env (`$env/dynamic/public`) so adapter-node reads it at
+ *      request time, no rebuild.
+ *   2. otherwise the generated client's default — which, since the backend OpenAPI
+ *      declares no `servers`, is **relative/same-origin**: requests go to `/api/*` on this
+ *      origin and `hooks.server.ts` proxies them to the backend (EAI_FLEET_BACKEND_URL).
  *
- * baseUrl is always '' (relative): every request goes out same-origin as `/api/*` and
- * hooks.server.ts proxies it to the backend container — in both `yarn dev` and the
- * deployed adapter-node server. An absolute URL would bypass that proxy.
+ * No hardcoded URL and no `''` sentinel — same-origin is the library default, the override
+ * is env-driven.
  */
 
+import { env } from '$env/dynamic/public';
 import type { CreateClientConfig } from '$lib/generated/fleet-backend-api/client.gen';
 
 export const createClientConfig: CreateClientConfig = (config) => ({
   ...config,
-  baseUrl: '',
+  baseUrl: env.EAI_FLEET_FRONTEND_API_BASE_URL ?? config?.baseUrl,
 });
