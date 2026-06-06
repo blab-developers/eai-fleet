@@ -47,7 +47,7 @@ class K8sClient:
         self._token = settings.kubernetes_token_path.read_text().strip()
         self._api_url = settings.kubernetes_api_url.rstrip("/")
         self._ca = str(settings.kubernetes_ca_path)
-        self._timeout_s = settings.kubernetes_timeout_s
+        self._timeout = settings.kubernetes_timeout_s
 
     def patch_daemonset_image(
         self,
@@ -90,7 +90,7 @@ class K8sClient:
                 },
                 json=body,
                 verify=self._ca,
-                timeout=self._timeout_s,
+                timeout=self._timeout,
             )
         except httpx2.HTTPError as e:
             raise KubernetesUnavailable(f"k8s PATCH transport failed: {e}") from e

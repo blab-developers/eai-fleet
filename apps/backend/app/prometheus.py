@@ -34,9 +34,9 @@ GPU_METRIC = "eai_inference_gpu_utilization"
 class PrometheusClient:
     """Thin client over the Prometheus instant-query API (`/api/v1/query`)."""
 
-    def __init__(self, base_url: str, timeout_s: float = 5.0) -> None:
+    def __init__(self, base_url: str, timeout: float = 5.0) -> None:
         self._base_url = base_url.rstrip("/")
-        self._timeout_s = timeout_s
+        self._timeout = timeout
 
     def node_ready(self) -> dict[str, float]:
         """Ready=1 / not=0 per nano node, keyed by the `node` label."""
@@ -50,7 +50,7 @@ class PrometheusClient:
         """Run an instant query; collapse the result vector to {label_value: float}."""
         url = f"{self._base_url}/api/v1/query"
         try:
-            resp = httpx2.get(url, params={"query": promql}, timeout=self._timeout_s)
+            resp = httpx2.get(url, params={"query": promql}, timeout=self._timeout)
             resp.raise_for_status()
             payload = resp.json()
         except (httpx2.HTTPError, ValueError) as e:
