@@ -2,9 +2,9 @@
 
 Mandatory conventions for all agents working in this repository.
 
-This file extends the **EAI Universal Conventions** (see eai-core/docs/EAI-UNIVERSAL.md
-or the eai-nano `AGENTS.md` Universal section). Rules below are **fleet-specific**
-additions; they do not override the universal rules.
+This file extends the canonical **[EAI Standards](../eai-nano/apps/backend/eai-core/docs/STANDARDIZATION.md)**
+(in eai-core; vendored in sibling repos under `apps/backend/eai-core/docs/`). Rules below are
+**fleet-specific** additions; they do not override the shared standard.
 
 ## Architecture — Stateless, Derived Fleet View (Spec 008)
 
@@ -27,10 +27,14 @@ additions; they do not override the universal rules.
 
 ## Frontend ↔ backend types
 
+> **The cross-repo frontend standard lives in the canonical
+> [EAI Standards → Frontend](../eai-nano/apps/backend/eai-core/docs/STANDARDIZATION.md).** Rules below
+> are fleet-specific (note the `adapter-node` + `$env/dynamic` exception).
+
 - Generate with `@hey-api/openapi-ts` → `src/lib/generated/fleet-backend-api/`.
-- `hey-api.ts` sets `baseUrl: ''` (same-origin): the browser always calls `/api/*` and
-  `hooks.server.ts` proxies it to the backend container — so no client-visible backend URL
-  is needed and there is no hand-written API wrapper.
+- `hey-api.ts` resolves `baseUrl` as `env.EAI_FLEET_FRONTEND_API_BASE_URL ?? config?.baseUrl`
+  (env-driven override, else the generated relative/same-origin default — no `''` literal). The
+  browser always calls `/api/*` and `hooks.server.ts` proxies it to the backend container.
 - **Runtime env via `$env/dynamic/public`** (not the universal `$env/static/public`) because
   `adapter-node` evaluates env at request time — this is the **one exception** to the universal
   rule. It is read where a value must be injected at deploy without a rebuild: the routes read
@@ -63,14 +67,11 @@ additions; they do not override the universal rules.
 - Corporate CA trust: `--build-context ca-trust=ca-trust/` — **backend image only** (pip
   behind the SSL-inspecting proxy). The frontend (`yarn`) image takes no CA context, same
   as eai-catalog. The Makefile applies `$(CA_TRUST)` to `ci-build-backend` only.
-- **Frontend CSS minify — keep `css.lightningcss.errorRecovery: true` (load-bearing).**
-  vite 8 made lightningcss the default CSS minifier (vitejs/vite#21911); it throws on
-  Carbon v11's legacy `@media not all and (min-resolution >= 0.001dpcm)` hack. esbuild
-  isn't an option — SvelteKit forces `cssMinify = !!build.minify` and its config wins, so
-  `build.cssMinify: 'esbuild'` is ignored. `errorRecovery` downgrades the parse error to a
-  warning so CSS **and** JS still fully minify. Do **not** "fix" it with `build.minify:false`.
-- **Layout uses Carbon CSS-Grid** (`Grid`/`Row`/`Column`) for page columns — not custom
-  flexbox containers.
+- **Frontend Carbon CSS / layout — see the canonical [EAI Standards → Frontend](../eai-nano/apps/backend/eai-core/docs/STANDARDIZATION.md).**
+  In short: `vite.config.ts` keeps the `fixCarbonInvalidMediaQuery` transform plugin that rewrites
+  Carbon v11's invalid `min-resolution >=` to the valid `resolution >=` form before minify (real fix,
+  full minification, no warnings — **not** lightningcss `errorRecovery`, which ships invalid CSS).
+  Layout uses Carbon CSS-Grid, not custom flexbox.
 
 ## Test infrastructure
 
@@ -84,5 +85,5 @@ additions; they do not override the universal rules.
 
 - Same as EAI Universal: no `utils`/`helpers`/`misc`, public-before-private,
   `__init__.py` = docstring only.
-- `install_deps.py` follows the EAI Install Standard (see eai-nano
-  `docs/EAI-INSTALL-STANDARD.md`): thin wrapper, `--dev`/`--dry-run`/`--check`/`--force`.
+- `install_deps.py` follows the canonical [EAI Standards → Install](../eai-nano/apps/backend/eai-core/docs/STANDARDIZATION.md):
+  thin stdlib-only wrapper, `--dev`/`--dry-run`/`--check`/`--force`.
