@@ -13,11 +13,18 @@ from app.prometheus import FPS_METRIC, GPU_METRIC, build_fleet_view
 from tests.conftest import FakePrometheus
 
 
-def test_health(client: TestClient) -> None:
-    """Health endpoint returns healthy status."""
-    response = client.get("/health")
+def test_health_live(client: TestClient) -> None:
+    """Liveness probe is always 200 while the process serves."""
+    response = client.get("/health/live")
     assert response.status_code == 200
-    assert response.json() == {"status": "healthy"}
+    assert response.json() == {"status": "alive"}
+
+
+def test_health_ready(client: TestClient) -> None:
+    """Readiness probe: fleet-mgr is stateless, so ready as soon as it serves."""
+    response = client.get("/health/ready")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ready", "reason": None}
 
 
 def test_heartbeat_endpoint_is_gone(client: TestClient) -> None:

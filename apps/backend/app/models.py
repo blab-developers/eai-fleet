@@ -60,14 +60,6 @@ class FleetView(BaseModel):
     online: int = Field(ge=0)
 
 
-class HealthStatus(BaseModel):
-    """Health check response."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    status: str
-
-
 class InferenceImageRequest(BaseModel):
     """POST body for setting the inference image on a device."""
 
