@@ -72,15 +72,8 @@ export type HttpValidationError = {
 
 /**
  * HealthStatus
- *
- * Health check response.
  */
-export type HealthStatus = {
-    /**
-     * Status
-     */
-    status: string;
-};
+export type HealthStatus = 'alive' | 'ready' | 'not_ready';
 
 /**
  * ImageSetScope
@@ -141,6 +134,28 @@ export type InferenceImageResponse = {
 export type InferenceState = 'stopped' | 'starting' | 'running' | 'paused' | 'error';
 
 /**
+ * Liveness
+ *
+ * Response body: GET /health/live — the process is up.
+ */
+export type Liveness = {
+    status?: HealthStatus;
+};
+
+/**
+ * Readiness
+ *
+ * Response body: GET /health/ready — ready to receive traffic (or why not).
+ */
+export type Readiness = {
+    status: HealthStatus;
+    /**
+     * Reason
+     */
+    reason?: string | null;
+};
+
+/**
  * ValidationError
  */
 export type ValidationError = {
@@ -168,21 +183,37 @@ export type ValidationError = {
     };
 };
 
-export type HealthData = {
+export type LiveData = {
     body?: never;
     path?: never;
     query?: never;
-    url: '/health';
+    url: '/health/live';
 };
 
-export type HealthResponses = {
+export type LiveResponses = {
     /**
      * Successful Response
      */
-    200: HealthStatus;
+    200: Liveness;
 };
 
-export type HealthResponse = HealthResponses[keyof HealthResponses];
+export type LiveResponse = LiveResponses[keyof LiveResponses];
+
+export type ReadyData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/health/ready';
+};
+
+export type ReadyResponses = {
+    /**
+     * Successful Response
+     */
+    200: Readiness;
+};
+
+export type ReadyResponse = ReadyResponses[keyof ReadyResponses];
 
 export type ListDevicesData = {
     body?: never;

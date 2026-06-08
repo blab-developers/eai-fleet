@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { HealthData, HealthResponses, ListDevicesData, ListDevicesResponses, SetInferenceImageData, SetInferenceImageErrors, SetInferenceImageResponses } from './types.gen';
+import type { ListDevicesData, ListDevicesResponses, LiveData, LiveResponses, ReadyData, ReadyResponses, SetInferenceImageData, SetInferenceImageErrors, SetInferenceImageResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -19,11 +19,14 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 };
 
 /**
- * Health
- *
- * Service health check.
+ * Live
  */
-export const health = <ThrowOnError extends boolean = false>(options?: Options<HealthData, ThrowOnError>): RequestResult<HealthResponses, unknown, ThrowOnError> => (options?.client ?? client).get<HealthResponses, unknown, ThrowOnError>({ url: '/health', ...options });
+export const live = <ThrowOnError extends boolean = false>(options?: Options<LiveData, ThrowOnError>): RequestResult<LiveResponses, unknown, ThrowOnError> => (options?.client ?? client).get<LiveResponses, unknown, ThrowOnError>({ url: '/health/live', ...options });
+
+/**
+ * Ready
+ */
+export const ready = <ThrowOnError extends boolean = false>(options?: Options<ReadyData, ThrowOnError>): RequestResult<ReadyResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ReadyResponses, unknown, ThrowOnError>({ url: '/health/ready', ...options });
 
 /**
  * List Devices
