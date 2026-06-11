@@ -89,3 +89,26 @@ class InferenceImageResponse(BaseModel):
     image: str
     scope: ImageSetScope
     note: str
+
+
+class ModelDeployRequest(BaseModel):
+    """POST body for deploying a catalog model package to one nano backend."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    nano_base_url: str = Field(min_length=1, description="Reachable eai-nano backend base URL.")
+    nano_token: str = Field(default="", description="Bearer token for the nano backend, if enabled.")
+
+
+class ModelDeployResponse(BaseModel):
+    """Response from ``POST /api/fleet/devices/{id}/models/{model_version_id}/deploy``."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    device_id: str
+    model_version_id: str
+    model_id: str
+    cached_package: str
+    package_sha256: str
+    nano_model_id: str
+    scope: ImageSetScope

@@ -11,15 +11,19 @@ version. See its docstring for the v1 "fleet-wide under per-device shape" caveat
 
 from typing import Annotated
 
+import httpx2
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.config import settings
 from app.k8s import K8sClient, KubernetesUnavailable
+from app.model_deploy import ModelDeployer
 from app.models import (
     FleetView,
     ImageSetScope,
     InferenceImageRequest,
     InferenceImageResponse,
+    ModelDeployRequest,
+    ModelDeployResponse,
 )
 from app.prometheus import PrometheusClient, PrometheusUnavailable, build_fleet_view
 
@@ -44,6 +48,15 @@ def get_k8s() -> K8sClient:
 
 PrometheusDep = Annotated[PrometheusClient, Depends(get_prometheus)]
 K8sDep = Annotated[K8sClient, Depends(get_k8s)]
+
+
+def _assert_device_exists(device_id: str, prometheus: PrometheusClient) -> None:
+    try:
+        view = build_fleet_view(prometheus)
+    except PrometheusUnavailable as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+    if device_id not in {d.device_id for d in view.devices}:
+        raise HTTPException(status_code=404, detail=f"device {device_id!r} not in fleet")
 
 
 @router.get("/devices", response_model=FleetView)
@@ -82,12 +95,7 @@ def set_inference_image(
       502 — the central Prometheus query (used to validate ``device_id``) or
             the k8s PATCH itself failed.
     """
-    try:
-        view = build_fleet_view(prometheus)
-    except PrometheusUnavailable as e:
-        raise HTTPException(status_code=502, detail=str(e)) from e
-    if device_id not in {d.device_id for d in view.devices}:
-        raise HTTPException(status_code=404, detail=f"device {device_id!r} not in fleet")
+    _assert_device_exists(device_id, prometheus)
 
     try:
         k8s.patch_daemonset_image(
@@ -109,4 +117,38 @@ def set_inference_image(
             "Nano in the fleet (Spec 008 demo scope); true per-device targeting "
             "lands with the per-Nano overlay."
         ),
+    )
+
+
+@router.post(
+    "/devices/{device_id}/models/{model_version_id}/deploy",
+    response_model=ModelDeployResponse,
+)
+def deploy_model_package(
+    device_id: str,
+    model_version_id: str,
+    request: ModelDeployRequest,
+    prometheus: PrometheusDep,
+) -> ModelDeployResponse:
+    """Fetch a catalog model package into fleet's cache, then push it to one nano backend."""
+    _assert_device_exists(device_id, prometheus)
+    deployer = ModelDeployer(
+        catalog_url=settings.catalog_url,
+        catalog_token=settings.catalog_token,
+        cache_dir=settings.model_cache_dir,
+        timeout_s=settings.model_deploy_timeout_s,
+    )
+    try:
+        cached = deployer.cache_package(model_version_id)
+        installed = deployer.push_to_nano(cached, request.nano_base_url, request.nano_token)
+    except (httpx2.HTTPError, ValueError) as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+    return ModelDeployResponse(
+        device_id=device_id,
+        model_version_id=model_version_id,
+        model_id=cached.manifest.model_id,
+        cached_package=str(cached.path),
+        package_sha256=cached.sha256,
+        nano_model_id=installed.model_id,
+        scope=ImageSetScope.DEVICE,
     )
