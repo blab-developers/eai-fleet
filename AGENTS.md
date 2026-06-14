@@ -64,6 +64,7 @@ This file extends the canonical **[EAI Standards](../eai-nano/apps/backend/eai-c
   one k8s touch in the code, `app/k8s.py`, is a runtime API *client* the backend uses to PATCH
   the inference DaemonSet image — an app feature, not deploy infra.)
 - Config-free images; env/secrets injected at deploy by eai-infra Ansible+vault.
+- **Config loading standard**: use Pydantic `BaseSettings`; precedence is `init > env vars > config.yaml > file secrets > defaults`. Env vars always win over the file. No `os.getenv()`, no `python-dotenv`.
 - Corporate CA trust: `--build-context ca-trust=ca-trust/` — **backend image only** (pip
   behind the SSL-inspecting proxy). The frontend (`yarn`) image takes no CA context, same
   as eai-catalog. The Makefile applies `$(CA_TRUST)` to `ci-build-backend` only.
