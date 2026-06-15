@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1.7
 # fleet-mgr backend — config-free image (env/secrets injected at deploy by eai-infra).
-# Multi-stage: deps cached on pyproject.toml alone; runtime carries venv + the app package.
+# Multi-stage: deps stage installs the vendored eai_core submodule + the app into a
+# venv; runtime carries that venv + the app package.
 
 FROM python:3.12-slim AS deps
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -20,8 +21,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
     && rm /usr/local/share/ca-certificates/corporate.crt \
     && update-ca-certificates
 
+# eai_core is published to no pip index — it ships as the apps/backend/eai-core
+# submodule (build context = apps/backend). Install it first so the app's
+# `eai_core[base]>=…` requirement resolves locally, then install the app. Both
+# bake into /opt/venv (non-editable), which the runtime stage copies whole.
+COPY eai-core ./eai-core
 COPY pyproject.toml ./
+COPY app ./app
 RUN python -m venv /opt/venv && /opt/venv/bin/pip install --upgrade pip && \
+    /opt/venv/bin/pip install ./eai-core && \
     /opt/venv/bin/pip install .
 
 FROM python:3.12-slim AS runtime

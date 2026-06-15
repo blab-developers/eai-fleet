@@ -143,6 +143,59 @@ export type Liveness = {
 };
 
 /**
+ * ModelDeployRequest
+ *
+ * POST body for deploying a catalog model package to one nano backend.
+ */
+export type ModelDeployRequest = {
+    /**
+     * Nano Base Url
+     *
+     * Reachable eai-nano backend base URL.
+     */
+    nano_base_url: string;
+    /**
+     * Nano Token
+     *
+     * Bearer token for the nano backend, if enabled.
+     */
+    nano_token?: string;
+};
+
+/**
+ * ModelDeployResponse
+ *
+ * Response from ``POST /api/fleet/devices/{id}/models/{model_version_id}/deploy``.
+ */
+export type ModelDeployResponse = {
+    /**
+     * Device Id
+     */
+    device_id: string;
+    /**
+     * Model Version Id
+     */
+    model_version_id: string;
+    /**
+     * Model Id
+     */
+    model_id: string;
+    /**
+     * Cached Package
+     */
+    cached_package: string;
+    /**
+     * Package Sha256
+     */
+    package_sha256: string;
+    /**
+     * Nano Model Id
+     */
+    nano_model_id: string;
+    scope: ImageSetScope;
+};
+
+/**
  * Readiness
  *
  * Response body: GET /health/ready — ready to receive traffic (or why not).
@@ -260,3 +313,37 @@ export type SetInferenceImageResponses = {
 };
 
 export type SetInferenceImageResponse = SetInferenceImageResponses[keyof SetInferenceImageResponses];
+
+export type DeployModelPackageData = {
+    body: ModelDeployRequest;
+    path: {
+        /**
+         * Device Id
+         */
+        device_id: string;
+        /**
+         * Model Version Id
+         */
+        model_version_id: string;
+    };
+    query?: never;
+    url: '/api/fleet/devices/{device_id}/models/{model_version_id}/deploy';
+};
+
+export type DeployModelPackageErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type DeployModelPackageError = DeployModelPackageErrors[keyof DeployModelPackageErrors];
+
+export type DeployModelPackageResponses = {
+    /**
+     * Successful Response
+     */
+    200: ModelDeployResponse;
+};
+
+export type DeployModelPackageResponse = DeployModelPackageResponses[keyof DeployModelPackageResponses];

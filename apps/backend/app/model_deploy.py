@@ -139,7 +139,9 @@ def _verify_artifact_hash(path: Path, manifest: ModelPackageManifest) -> None:
             raise ValueError(f"package missing artifact {manifest.artifact_filename!r}") from exc
     actual = digest.hexdigest()
     if actual != manifest.weights_hash:
-        raise ValueError(f"artifact sha256 mismatch: expected {manifest.weights_hash}, got {actual}")
+        raise ValueError(
+            f"artifact sha256 mismatch: expected {manifest.weights_hash}, got {actual}"
+        )
 
 
 def _sha256(path: Path) -> str:

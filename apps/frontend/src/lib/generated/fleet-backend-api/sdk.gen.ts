@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { ListDevicesData, ListDevicesResponses, LiveData, LiveResponses, ReadyData, ReadyResponses, SetInferenceImageData, SetInferenceImageErrors, SetInferenceImageResponses } from './types.gen';
+import type { DeployModelPackageData, DeployModelPackageErrors, DeployModelPackageResponses, ListDevicesData, ListDevicesResponses, LiveData, LiveResponses, ReadyData, ReadyResponses, SetInferenceImageData, SetInferenceImageErrors, SetInferenceImageResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -56,6 +56,20 @@ export const listDevices = <ThrowOnError extends boolean = false>(options?: Opti
  */
 export const setInferenceImage = <ThrowOnError extends boolean = false>(options: Options<SetInferenceImageData, ThrowOnError>): RequestResult<SetInferenceImageResponses, SetInferenceImageErrors, ThrowOnError> => (options.client ?? client).post<SetInferenceImageResponses, SetInferenceImageErrors, ThrowOnError>({
     url: '/api/fleet/devices/{device_id}/inference/image',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Deploy Model Package
+ *
+ * Fetch a catalog model package into fleet's cache, then push it to one nano backend.
+ */
+export const deployModelPackage = <ThrowOnError extends boolean = false>(options: Options<DeployModelPackageData, ThrowOnError>): RequestResult<DeployModelPackageResponses, DeployModelPackageErrors, ThrowOnError> => (options.client ?? client).post<DeployModelPackageResponses, DeployModelPackageErrors, ThrowOnError>({
+    url: '/api/fleet/devices/{device_id}/models/{model_version_id}/deploy',
     ...options,
     headers: {
         'Content-Type': 'application/json',

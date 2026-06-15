@@ -12,6 +12,11 @@ variables:
   GIT_SSL_CAINFO: "$CI_SERVER_TLS_CA_FILE"
   DOCKER_HOST: tcp://localhost:2375
   DOCKER_TLS_CERTDIR: ""
+  # eai_core is published to no pip index; it ships as the apps/backend/eai-core
+  # submodule. Init it on every checkout so the validate jobs can pip-install it
+  # and the build job's Docker context (apps/backend) carries its source.
+  GIT_SUBMODULE_STRATEGY: normal
+  GIT_SUBMODULE_PATHS: apps/backend/eai-core
 
 .dind-service: &dind-service
   name: docker:24-dind
@@ -62,6 +67,8 @@ lint:backend:
     # python:3.12-slim doesn't ship `make` (needed by the ci-* targets) or
     # libatomic1 (needed by pyright's bundled node binary).
     - apt-get update && apt-get install -y --no-install-recommends make libatomic1
+    # eai_core first (vendored submodule) so the app's eai_core requirement resolves.
+    - pip install -e apps/backend/eai-core
     - pip install -e "apps/backend[dev]"
   script:
     - make ci-lint-backend
@@ -80,6 +87,8 @@ test:backend:
   before_script:
     - *ca-script
     - apt-get update && apt-get install -y --no-install-recommends make
+    # eai_core first (vendored submodule) so the app's eai_core requirement resolves.
+    - pip install -e apps/backend/eai-core
     - pip install -e "apps/backend[dev]"
   script:
     - make ci-test-backend
@@ -104,7 +113,9 @@ frontend:
     - *ca-script
     - apt-get update && apt-get install -y --no-install-recommends make python3 python3-pip python3-venv
     # Backend deps so `yarn gen:api` can dump app.openapi() (falls back to python3
-    # on PATH when apps/backend/.venv is absent — as it is in CI).
+    # on PATH when apps/backend/.venv is absent — as it is in CI). eai_core first
+    # (vendored submodule) so the app's eai_core requirement resolves.
+    - pip install --break-system-packages -e apps/backend/eai-core
     - pip install --break-system-packages -e "apps/backend"
     - corepack enable
     - cd apps/frontend && yarn install --immutable && yarn playwright install --with-deps chromium && cd ../..

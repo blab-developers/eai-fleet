@@ -70,12 +70,21 @@ def test_plan_pulls_diffs_against_disk(tmp_path):
 def test_plan_skips_unsealed_and_unhashed(tmp_path):
     manifest = [
         ManifestFile(
-            media_file_id="x", kind="video", filename="v.mp4", size_bytes=1,
-            sha256=None, created_at=datetime(2026, 6, 2),
+            media_file_id="x",
+            kind="video",
+            filename="v.mp4",
+            size_bytes=1,
+            sha256=None,
+            created_at=datetime(2026, 6, 2),
         ),
         ManifestFile(
-            media_file_id="y", kind="video", filename="v.mp4", size_bytes=1,
-            sha256="abc", created_at=datetime(2026, 6, 2), sealed=False,
+            media_file_id="y",
+            kind="video",
+            filename="v.mp4",
+            size_bytes=1,
+            sha256="abc",
+            created_at=datetime(2026, 6, 2),
+            sealed=False,
         ),
     ]
     assert plan_pulls(manifest, tmp_path) == []

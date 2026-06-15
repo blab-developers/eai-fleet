@@ -34,9 +34,17 @@ packages = ["app", "app.routers"]
 
 [tool.ruff]
 line-length = 100
+# eai-core is a vendored submodule with its own lint config and style; lint only
+# fleet's own code (`ruff check .` / `ruff format` run from this dir would otherwise
+# traverse it and fail on its module names + formatting).
+extend-exclude = ["eai-core"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.pyright]
+# Don't type-check the vendored eai-core submodule or the local venv.
+exclude = ["eai-core", ".venv", "**/__pycache__"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

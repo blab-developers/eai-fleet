@@ -97,7 +97,9 @@ class ModelDeployRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     nano_base_url: str = Field(min_length=1, description="Reachable eai-nano backend base URL.")
-    nano_token: str = Field(default="", description="Bearer token for the nano backend, if enabled.")
+    nano_token: str = Field(
+        default="", description="Bearer token for the nano backend, if enabled."
+    )
 
 
 class ModelDeployResponse(BaseModel):
