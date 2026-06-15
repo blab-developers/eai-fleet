@@ -36,11 +36,11 @@ export default defineConfig({
   // so the same proxy handles dev and prod. Set EAI_FLEET_BACKEND_URL in .env (see
   // .env.example) to point dev at a running backend.
   server: {
-    port: 5173,
+    port: 5176,
     host: true,
   },
   preview: {
-    port: 5173,
+    port: 5176,
     host: true,
   },
 });

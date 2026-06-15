@@ -1,0 +1,93 @@
+/* Global stylesheet — imported once by the root +layout.svelte so Vite/SvelteKit
+   bundles it. Holds the Carbon v11 grid backfill.
+   The Carbon g90 theme is imported DIRECTLY in +layout.svelte (not @import'd here)
+   so the fix-carbon-invalid-media-query vite transform can rewrite g90's illegal
+   `min-resolution >=` media query before minify. */
+
+/* ---------------------------------------------------------------------------
+   Carbon v11 flex-grid backfill.
+
+   carbon-components-svelte 1.0.0-next ships the Grid/Row/Column components but
+   NOT the grid layout CSS. Without these rules every <Row> collapses to stacked
+   full-width columns. This is the minimal faithful subset of Carbon's 16-column
+   flex grid used by the app. Delete this block if a future release bundles it.
+   --------------------------------------------------------------------------- */
+.bx--grid {
+	margin-right: auto;
+	margin-left: auto;
+	max-width: 99rem;
+	padding-right: 1rem;
+	padding-left: 1rem;
+}
+.bx--row {
+	display: flex;
+	flex-wrap: wrap;
+	margin-right: -1rem;
+	margin-left: -1rem;
+}
+.bx--row + .bx--row {
+	margin-top: 1rem;
+}
+[class*='bx--col'] {
+	flex: 1 1 auto;
+	width: 100%;
+	padding-right: 1rem;
+	padding-left: 1rem;
+}
+
+/* sm: 4-column baseline. */
+.bx--col-sm-4 {
+	flex: 0 0 100%;
+	max-width: 100%;
+}
+
+/* md: 8-column grid. */
+@media (min-width: 42rem) {
+	.bx--col-md-2 {
+		flex: 0 0 25%;
+		max-width: 25%;
+	}
+	.bx--col-md-4 {
+		flex: 0 0 50%;
+		max-width: 50%;
+	}
+	.bx--col-md-6 {
+		flex: 0 0 75%;
+		max-width: 75%;
+	}
+	.bx--col-md-8 {
+		flex: 0 0 100%;
+		max-width: 100%;
+	}
+}
+
+/* lg: 16-column grid. */
+@media (min-width: 66rem) {
+	.bx--col-lg-4 {
+		flex: 0 0 25%;
+		max-width: 25%;
+	}
+	.bx--col-lg-5 {
+		flex: 0 0 31.25%;
+		max-width: 31.25%;
+	}
+	.bx--col-lg-6 {
+		flex: 0 0 37.5%;
+		max-width: 37.5%;
+	}
+	.bx--col-lg-8 {
+		flex: 0 0 50%;
+		max-width: 50%;
+	}
+	.bx--col-lg-10 {
+		flex: 0 0 62.5%;
+		max-width: 62.5%;
+	}
+	.bx--col-lg-12 {
+		flex: 0 0 75%;
+		max-width: 75%;
+	}
+	.bx--col-lg-16 {
+		flex: 0 0 100%;
+		max-width: 100%;	}
+}

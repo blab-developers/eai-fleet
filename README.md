@@ -105,6 +105,10 @@ Frontend (`apps/frontend/.env.example`):
 
 ## Develop
 
+For an AI-assisted interactive workflow where an agent drives the browser,
+takes screenshots, and verifies UI changes, see
+[`docs/AI_FRONTEND_WORKFLOW.md`](docs/AI_FRONTEND_WORKFLOW.md).
+
 Backend (fake Prometheus + fake k8s; no Docker, no cluster):
 
 ```bash
@@ -122,7 +126,14 @@ yarn install
 yarn gen:api            # regenerate the typed client from the live backend app.openapi()
 yarn check              # svelte-check
 cp .env.example .env    # point EAI_FLEET_BACKEND_URL at a running backend
-yarn dev                # serves on :5173, proxies /api → backend
+
+# Option A: run against the real fleet backend (requires Prometheus + k8s access)
+fleet-mgr               # in another terminal, serves on :8088
+yarn dev                # serves on :5176, proxies /api → backend
+
+# Option B: run against the bundled mock backend (UI-only work)
+yarn mock:backend       # serves sample fleet data on :8088
+yarn dev                # serves on :5176, proxies /api → mock backend
 ```
 
 `make ci-lint ci-test ci-gen-types-check` from the repo root mirrors CI.
