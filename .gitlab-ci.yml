@@ -96,14 +96,15 @@ test:backend:
 
 frontend:
   stage: validate
-  # Debian-based node image (not alpine) so we can apt-install python3 (for the
-  # gen:api drift check — it boots the backend's app.openapi(), needs fastapi) and
-  # the playwright browser deps. node:22 satisfies vite's >=22.12 requirement.
+  # Debian-based node image (not alpine) so we can apt-install build tooling for the
+  # gen:api drift check (it boots the backend's app.openapi()) and the playwright
+  # browser deps. node:22 satisfies vite's >=22.12 requirement.
   image: node:22
   interruptible: true
   variables:
     YARN_CACHE_FOLDER: "$CI_PROJECT_DIR/.yarn-cache"
     PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+    UV_NATIVE_TLS: "1"  # make uv's Python download trust the corporate CA in the system store
   cache:
     key: frontend-node22
     paths:
@@ -111,12 +112,16 @@ frontend:
       - .pip-cache/
   before_script:
     - *ca-script
-    - apt-get update && apt-get install -y --no-install-recommends make python3 python3-pip python3-venv
-    # Backend deps so `yarn gen:api` can dump app.openapi() (falls back to python3
-    # on PATH when apps/backend/.venv is absent — as it is in CI). eai_core first
-    # (vendored submodule) so the app's eai_core requirement resolves.
-    - pip install --break-system-packages -e apps/backend/eai-core
-    - pip install --break-system-packages -e "apps/backend"
+    - apt-get update && apt-get install -y --no-install-recommends make python3-pip
+    # gen:api boots the backend's app.openapi(), which imports eai_core. eai_core
+    # uses PEP 695 syntax and requires Python >=3.12, but this node image ships
+    # 3.11 — so provision 3.12 with uv and build apps/backend/.venv (which
+    # gen-backend-api.mjs prefers) from the vendored eai_core + the app.
+    - pip3 install --break-system-packages uv
+    - uv python install 3.12
+    - uv venv --python 3.12 apps/backend/.venv
+    - uv pip install --python apps/backend/.venv/bin/python -e apps/backend/eai-core
+    - uv pip install --python apps/backend/.venv/bin/python -e "apps/backend"
     - corepack enable
     - cd apps/frontend && yarn install --immutable && yarn playwright install --with-deps chromium && cd ../..
   script:
