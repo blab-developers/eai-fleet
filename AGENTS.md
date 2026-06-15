@@ -25,6 +25,15 @@ This file extends the canonical **[EAI Standards](../eai-nano/apps/backend/eai-c
 - No SQLModel (no DB). No `dataclass`.
 - `httpx2` only for outbound HTTP.
 
+## Logging
+
+- Follow the canonical EAI split: services initialize root logging with
+  `eai.logging.setup_logging(...)`, CLIs/scripts use `eai.logging.setup_logger(...)` only when they
+  need a named human-readable logger, and module loggers use `logging.getLogger(__name__)`.
+- `eai.logging` owns the JSON/text schema and request-id behavior; fleet owns any file location.
+  If the backend needs a persistent file, write under its app-local `.log/` directory and name it
+  with env-var-level specificity, e.g. `eai_fleet_backend.log` or `eai_fleet_backend_access.log`.
+
 ## Frontend ↔ backend types
 
 > **The cross-repo frontend standard lives in the canonical
