@@ -96,34 +96,32 @@ test:backend:
 
 frontend:
   stage: validate
-  # Debian-based node image (not alpine) so we can apt-install build tooling for the
-  # gen:api drift check (it boots the backend's app.openapi()) and the playwright
-  # browser deps. node:22 satisfies vite's >=22.12 requirement.
-  image: node:22
+  # Official Playwright image: Chromium is pre-installed, so there's no CDN
+  # download to trip over the corporate-MITM self-signed cert (the pattern
+  # eai-audit uses). Ubuntu 24.04 ships Python 3.12 (eai_core needs >=3.12 for
+  # its PEP 695 syntax) and Node 24 satisfies vite's >=22.12. The tag must track
+  # @playwright/test (^1.60) so the baked-in browser matches the test runner.
+  image: mcr.microsoft.com/playwright:v1.60.0-noble
   interruptible: true
   variables:
     YARN_CACHE_FOLDER: "$CI_PROJECT_DIR/.yarn-cache"
     PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
-    UV_NATIVE_TLS: "1"  # make uv's Python download trust the corporate CA in the system store
   cache:
-    key: frontend-node22
+    key: frontend-playwright-v1.60
     paths:
       - .yarn-cache/
       - .pip-cache/
   before_script:
     - *ca-script
-    - apt-get update && apt-get install -y --no-install-recommends make python3-pip
-    # gen:api boots the backend's app.openapi(), which imports eai_core. eai_core
-    # uses PEP 695 syntax and requires Python >=3.12, but this node image ships
-    # 3.11 — so provision 3.12 with uv and build apps/backend/.venv (which
-    # gen-backend-api.mjs prefers) from the vendored eai_core + the app.
-    - pip3 install --break-system-packages uv
-    - uv python install 3.12
-    - uv venv --python 3.12 apps/backend/.venv
-    - uv pip install --python apps/backend/.venv/bin/python -e apps/backend/eai-core
-    - uv pip install --python apps/backend/.venv/bin/python -e "apps/backend"
+    - apt-get update && apt-get install -y --no-install-recommends make python3-pip python3-venv
+    # gen:api boots the backend's app.openapi(), which imports eai_core; install
+    # the vendored eai_core first so the app's requirement resolves. The image's
+    # system python3 is 3.12, so gen-backend-api.mjs's python3 fallback works.
+    - pip install --break-system-packages -e apps/backend/eai-core
+    - pip install --break-system-packages -e "apps/backend"
     - corepack enable
-    - cd apps/frontend && yarn install --immutable && yarn playwright install --with-deps chromium && cd ../..
+    # No `playwright install` — Chromium is baked into the image.
+    - cd apps/frontend && yarn install --immutable && cd ../..
   script:
     - make ci-lint-frontend
     - make ci-gen-types-check
