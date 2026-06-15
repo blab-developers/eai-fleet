@@ -11,7 +11,7 @@
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
-    "gen:api": "node scripts/gen-backend-api.mjs",
+    "gen:backend-api": "node scripts/gen-backend-api.mjs",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "test:unit": "vitest run",
     "test:e2e": "vite build && playwright test",
@@ -35,6 +35,6 @@
   },
   "dependencies": {
     "carbon-components-svelte": "^1.0.0-next.1",
-    "carbon-icons-svelte": "^11.0.0"
+    "carbon-icons-svelte": "^12.13.0"
   }
 }

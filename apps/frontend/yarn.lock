@@ -1082,10 +1082,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"carbon-icons-svelte@npm:^11.0.0":
-  version: 11.4.0
-  resolution: "carbon-icons-svelte@npm:11.4.0"
-  checksum: 33c8c66bf89108cc93789445e4c4f493e58e980f5e2182d85c34452d704dbbfc29fff3e290e53fa91b9cd23dfb2c674edfa2cf08a03c7a1876d6ced9af978a25
+"carbon-icons-svelte@npm:^12.13.0":
+  version: 12.25.0
+  resolution: "carbon-icons-svelte@npm:12.25.0"
+  checksum: 81cad307d828846bd6e5e13b68fe9ff87808b0e0de1292527ac315b442313663578c407109b7685d561b92d822b9add5a272680c9d23264a439f2e4d9b5a3a5f
   languageName: node
   linkType: hard
 
@@ -1372,7 +1372,7 @@ __metadata:
     "@sveltejs/vite-plugin-svelte": "npm:^7.1.2"
     "@types/node": "npm:^25.9.2"
     carbon-components-svelte: "npm:^1.0.0-next.1"
-    carbon-icons-svelte: "npm:^11.0.0"
+    carbon-icons-svelte: "npm:^12.13.0"
     carbon-preprocess-svelte: "npm:^0.11.31"
     happy-dom: "npm:^20.10.1"
     sass: "npm:^1.86.3"
