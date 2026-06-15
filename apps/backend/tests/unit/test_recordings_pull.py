@@ -6,13 +6,14 @@ so reconcile() is idempotent and exact duplicates are skipped (Spec 024).
 
 import hashlib
 from datetime import datetime
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import recordings_pull as rp
 from recordings_pull import ManifestFile, RecordingsPuller, plan_pulls
 
 
-def _mf(mid: str, kind: str, filename: str, data: bytes, **kw) -> ManifestFile:
+def _mf(mid: str, kind: str, filename: str, data: bytes) -> ManifestFile:
     return ManifestFile(
         media_file_id=mid,
         kind=kind,
@@ -20,11 +21,10 @@ def _mf(mid: str, kind: str, filename: str, data: bytes, **kw) -> ManifestFile:
         size_bytes=len(data),
         sha256=hashlib.sha256(data).hexdigest(),
         created_at=datetime(2026, 6, 2),
-        **kw,
     )
 
 
-def _manifest_payload(files: list[ManifestFile]) -> dict:
+def _manifest_payload(files: list[ManifestFile]) -> dict[str, object]:
     return {
         "device_id": "nano-1",
         "files": [f.model_dump(mode="json") for f in files],
@@ -34,7 +34,7 @@ def _manifest_payload(files: list[ManifestFile]) -> dict:
     }
 
 
-def _get_mock(payload: dict) -> MagicMock:
+def _get_mock(payload: dict[str, object]) -> MagicMock:
     resp = MagicMock()
     resp.raise_for_status = MagicMock()
     resp.json = MagicMock(return_value=payload)
@@ -52,7 +52,7 @@ def _stream_mock(data: bytes, status_code: int = 200) -> MagicMock:
     return ctx
 
 
-def test_plan_pulls_diffs_against_disk(tmp_path):
+def test_plan_pulls_diffs_against_disk(tmp_path: Path):
     data = b"video-bytes"
     manifest = [
         _mf("v1", "video", "video.mp4", data),
@@ -67,21 +67,30 @@ def test_plan_pulls_diffs_against_disk(tmp_path):
     assert [f.media_file_id for f in todo] == ["s1"]
 
 
-def test_plan_skips_unsealed_and_unhashed(tmp_path):
+def test_plan_skips_unsealed_and_unhashed(tmp_path: Path):
     manifest = [
         ManifestFile(
-            media_file_id="x", kind="video", filename="v.mp4", size_bytes=1,
-            sha256=None, created_at=datetime(2026, 6, 2),
+            media_file_id="x",
+            kind="video",
+            filename="v.mp4",
+            size_bytes=1,
+            sha256=None,
+            created_at=datetime(2026, 6, 2),
         ),
         ManifestFile(
-            media_file_id="y", kind="video", filename="v.mp4", size_bytes=1,
-            sha256="abc", created_at=datetime(2026, 6, 2), sealed=False,
+            media_file_id="y",
+            kind="video",
+            filename="v.mp4",
+            size_bytes=1,
+            sha256="abc",
+            created_at=datetime(2026, 6, 2),
+            sealed=False,
         ),
     ]
     assert plan_pulls(manifest, tmp_path) == []
 
 
-def test_reconcile_downloads_verifies_and_is_idempotent(tmp_path):
+def test_reconcile_downloads_verifies_and_is_idempotent(tmp_path: Path):
     data = b"the-video-bytes"
     payload = _manifest_payload([_mf("v1", "video", "video.mp4", data)])
 
@@ -104,7 +113,7 @@ def test_reconcile_downloads_verifies_and_is_idempotent(tmp_path):
     stream.assert_not_called()  # nothing to download
 
 
-def test_reconcile_rejects_sha_mismatch(tmp_path):
+def test_reconcile_rejects_sha_mismatch(tmp_path: Path):
     payload = _manifest_payload([_mf("v1", "video", "v.mp4", b"good-bytes")])
     with (
         patch.object(rp.httpx2, "get", return_value=_get_mock(payload)),

@@ -14,11 +14,11 @@
 	const grafanaBase = env.EAI_FLEET_FRONTEND_GRAFANA_URL ?? '';
 	const online = $derived(device.health === 'online');
 
-	function grafanaLink(deviceId: string): string {
-		if (!grafanaBase) return '';
-		const sep = grafanaBase.includes('?') ? '&' : '?';
-		return `${grafanaBase}${sep}var-device=${encodeURIComponent(deviceId)}`;
-	}
+	const grafanaLink = $derived(
+		grafanaBase
+			? `${grafanaBase}${grafanaBase.includes('?') ? '&' : '?'}var-device=${encodeURIComponent(device.device_id)}`
+			: ''
+	);
 </script>
 
 <AccordionItem>
@@ -58,7 +58,7 @@
 					kind="ghost"
 					size="sm"
 					icon={ChartLine}
-					href={grafanaLink(device.device_id)}
+					href={grafanaLink}
 					target="_blank"
 				>
 					History

@@ -21,11 +21,11 @@
 	const device = $derived(fleetStore.devices.find((d) => d.device_id === deviceId));
 	const online = $derived(device?.health === 'online');
 
-	function grafanaLink(): string {
-		if (!grafanaBase || !device) return '';
-		const sep = grafanaBase.includes('?') ? '&' : '?';
-		return `${grafanaBase}${sep}var-device=${encodeURIComponent(device.device_id)}`;
-	}
+	const grafanaLink = $derived(
+		device && grafanaBase
+			? `${grafanaBase}${grafanaBase.includes('?') ? '&' : '?'}var-device=${encodeURIComponent(device.device_id)}`
+			: ''
+	);
 </script>
 
 <Button kind="ghost" size="sm" icon={ArrowLeft} href="/">Back to fleet</Button>
@@ -75,7 +75,7 @@
 
 	<ButtonSet class="detail-actions">
 		{#if grafanaBase}
-			<Button kind="ghost" size="sm" icon={ChartLine} href={grafanaLink()} target="_blank">
+			<Button kind="ghost" size="sm" icon={ChartLine} href={grafanaLink} target="_blank">
 				History
 			</Button>
 		{/if}

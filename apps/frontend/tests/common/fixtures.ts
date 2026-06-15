@@ -1,7 +1,12 @@
-import type { Page, Route } from '@playwright/test';
+import { test as base, expect, type Page, type Route } from '@playwright/test';
 import type { DeviceView, FleetView } from '../../src/lib/generated/fleet-backend-api';
 
-/** Build a FleetView envelope from a device list (derives total/online like the backend). */
+export const sampleDevices: DeviceView[] = [
+  { device_id: 'jetson-00', name: 'jetson-00', state: 'running', fps: 29.5, gpu_utilization: 73, health: 'online' },
+  { device_id: 'jetson-01', name: 'jetson-01', state: 'stopped', fps: 0, gpu_utilization: 0, health: 'online' },
+  { device_id: 'jetson-02', name: 'jetson-02', state: 'stopped', fps: 0, gpu_utilization: 0, health: 'offline' },
+];
+
 export function fleetView(devices: DeviceView[]): FleetView {
   return {
     devices,
@@ -10,13 +15,10 @@ export function fleetView(devices: DeviceView[]): FleetView {
   };
 }
 
-export const sampleDevices: DeviceView[] = [
-  { device_id: 'jetson-00', name: 'jetson-00', state: 'running', fps: 29.5, gpu_utilization: 73, health: 'online' },
-  { device_id: 'jetson-01', name: 'jetson-01', state: 'stopped', fps: 0, gpu_utilization: 0, health: 'online' },
-  { device_id: 'jetson-02', name: 'jetson-02', state: 'stopped', fps: 0, gpu_utilization: 0, health: 'offline' },
-];
+export function json(status: number, body: unknown) {
+  return { status, contentType: 'application/json', body: JSON.stringify(body) };
+}
 
-/** Mock GET /api/fleet/devices (the polled fleet view). */
 export async function mockFleet(page: Page, body: unknown, status = 200): Promise<void> {
   await page.route(
     (url) => url.pathname === '/api/fleet/devices',
@@ -25,7 +27,6 @@ export async function mockFleet(page: Page, body: unknown, status = 200): Promis
   );
 }
 
-/** Mock POST /api/fleet/devices/{id}/inference/image with a per-call handler. */
 export async function mockSetImage(
   page: Page,
   handler: (route: Route, deviceId: string) => unknown,
@@ -39,6 +40,15 @@ export async function mockSetImage(
   );
 }
 
-export function json(status: number, body: unknown) {
-  return { status, contentType: 'application/json', body: JSON.stringify(body) };
-}
+// Extend base test with a mockedPage fixture.
+// This page has the default devices API mocked and ready.
+export const test = base.extend<{
+  mockedPage: Page;
+}>({
+  mockedPage: async ({ page }, use) => {
+    await mockFleet(page, fleetView(sampleDevices));
+    await use(page);
+  },
+});
+
+export { expect };
