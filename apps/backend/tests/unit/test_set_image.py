@@ -8,7 +8,7 @@ device) and the k8s-PATCH wiring (FakeK8s records what the route would have sent
 from fastapi.testclient import TestClient
 
 from app.k8s import KubernetesUnavailable
-from app.prometheus import FPS_METRIC
+from app.metrics import FPS_METRIC
 from tests.conftest import FakeK8s, FakePrometheus
 
 

@@ -67,9 +67,10 @@ test-backend: ## Run backend tests (fake Prometheus + fake k8s; no Docker, no cl
 test-frontend: ## Run Playwright E2E tests (mocks /api in-browser)
 	cd $(FRONTEND_DIR) && yarn test:e2e
 
-lint: lint-backend lint-frontend ## Run backend + frontend linters
+lint: lint-backend lint-frontend ## Run backend + frontend linters + Makefile check
 
 lint-backend: ## ruff + pyright (backend)
+	$(call backend_python) scripts/check_makefile.py Makefile
 	cd $(BACKEND_DIR) && ruff check . && ruff format --check . && $(call backend_python) -m pyright .
 
 lint-frontend: ## svelte-check (frontend)
