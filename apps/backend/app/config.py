@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from eai.contracts import CACHE_DIR
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -32,6 +33,14 @@ class Settings(BaseSettings):
     prometheus_timeout_s: float = 5.0
     port: int = 8088
     log_level: str = "INFO"
+
+    # --- Model package deployment ---
+    # eai-catalog is the source of truth; fleet caches packages using the shared
+    # eai-core cache root before pushing them to nano backends.
+    catalog_url: str = "http://localhost:8000/api/v1"
+    catalog_token: str = ""
+    model_cache_dir: Path = CACHE_DIR / "models"
+    model_deploy_timeout_s: float = 60.0
 
     # --- Kubernetes (image-set endpoint) ---
     # Defaults match the canonical in-cluster SA mount. The eai-infra role drops
