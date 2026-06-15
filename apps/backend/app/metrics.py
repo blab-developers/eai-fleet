@@ -1,102 +1,85 @@
-"""Read-through to central Prometheus — the fleet view is DERIVED, not ingested.
+"""Prometheus exposition for fleet-mgr itself (Spec 025 §1c parity).
 
-fleet-mgr holds no device state (Spec 008). Online/offline comes from **KubeEdge node
-status** (surfaced centrally by kube-state-metrics) and telemetry from the nano agents'
-remote_written ``eai_inference_*`` series. This module queries the central Prometheus
-instant-query HTTP API and returns plain ``{identity: value}`` maps; ``build_fleet_view``
-composes them into the fleet view.
-
-⚠️ Cluster-verify the PromQL below. The query *logic* is unit-tested against mocked
-Prometheus responses, but the exact series/label names are validated only on a live
-cluster with kube-state-metrics + the nano remote_write receiver wired up:
-  - ``device_id`` is the agent external label (deploy/50-prometheus-agent.yaml) and is
-    assumed equal to the KubeEdge ``node`` name that KSM reports.
-  - the nano-node filter label (``label_node_role_eai_nano``) is KSM's sanitized form of
-    the ``node-role.eai/nano`` node label the agent DaemonSet selects on.
+It runs a dedicated Prometheus metrics server on port 9094.
+The exporter exposes:
+  - eai_fleet_up: fleet-mgr process status (always 1.0)
+  - eai_fleet_prometheus_up: central Prometheus connectivity (1.0 / 0.0)
+  - eai_fleet_k8s_up: Kubernetes API connectivity (1.0 / 0.0)
 """
 
+import logging
+from collections.abc import Iterable
+
 import httpx2
+import prometheus_client
+from prometheus_client.core import GaugeMetricFamily, Metric
+from prometheus_client.registry import Collector
 
-from app.models import DeviceView, FleetHealth, FleetView, InferenceState
+from app.config import settings
 
-# ── PromQL (cluster-verify; see module docstring) ───────────────────────────
-# Ready *nano* nodes only — keyed by the `node` label (== device_id).
-NODE_READY_QUERY = (
-    'kube_node_status_condition{condition="Ready",status="true"} '
-    "* on (node) group_left "
-    'kube_node_labels{label_node_role_eai_nano="true"}'
-)
-# Live telemetry — keyed by the `device_id` external label.
-FPS_METRIC = "eai_inference_fps"
-GPU_METRIC = "eai_inference_gpu_utilization"
+log = logging.getLogger(__name__)
+
+METRICS_PORT = 9094
 
 
-class PrometheusClient:
-    """Thin client over the Prometheus instant-query API (`/api/v1/query`)."""
+class FleetCollector(Collector):
+    """Recomputes fleet-mgr system health metrics on scrape."""
 
-    def __init__(self, base_url: str, timeout: float = 5.0) -> None:
-        self._base_url = base_url.rstrip("/")
-        self._timeout = timeout
+    def collect(self) -> Iterable[Metric]:
+        prom_up = 1.0
+        k8s_up = 1.0
 
-    def node_ready(self) -> dict[str, float]:
-        """Ready=1 / not=0 per nano node, keyed by the `node` label."""
-        return self._scalars_by_label(NODE_READY_QUERY, "node")
-
-    def gauge_by_device(self, metric: str) -> dict[str, float]:
-        """Latest value of a gauge per device, keyed by the `device_id` label."""
-        return self._scalars_by_label(metric, "device_id")
-
-    def _scalars_by_label(self, promql: str, label: str) -> dict[str, float]:
-        """Run an instant query; collapse the result vector to {label_value: float}."""
-        url = f"{self._base_url}/api/v1/query"
+        # 1. Test central Prometheus connectivity
         try:
-            resp = httpx2.get(url, params={"query": promql}, timeout=self._timeout)
-            resp.raise_for_status()
-            payload = resp.json()
-        except (httpx2.HTTPError, ValueError) as e:
-            raise PrometheusUnavailable(f"Prometheus query failed: {e}") from e
-        if payload.get("status") != "success":
-            raise PrometheusUnavailable(f"Prometheus returned status={payload.get('status')!r}")
-        out: dict[str, float] = {}
-        for sample in payload["data"]["result"]:
-            key = sample["metric"].get(label)
-            if key is None:
-                continue  # sample without the identity label — not a fleet device
-            out[key] = float(sample["value"][1])
-        return out
+            # Simple query to check if Prometheus is answering
+            url = f"{settings.prometheus_url.rstrip('/')}/api/v1/query"
+            resp = httpx2.get(url, params={"query": "1"}, timeout=settings.prometheus_timeout_s)
+            if resp.status_code != 200:
+                prom_up = 0.0
+        except Exception:  # noqa: BLE001 - scrapes must never raise
+            prom_up = 0.0
+
+        # 2. Test Kubernetes API connectivity
+        try:
+            # Read token to see if it's mounted, check API endpoint
+            if settings.kubernetes_token_path.exists():
+                token = settings.kubernetes_token_path.read_text().strip()
+                headers = {"Authorization": f"Bearer {token}"}
+                ca_verify = (
+                    str(settings.kubernetes_ca_path)
+                    if settings.kubernetes_ca_path.exists()
+                    else False
+                )
+                url = f"{settings.kubernetes_api_url.rstrip('/')}/api"
+                resp = httpx2.get(
+                    url, headers=headers, verify=ca_verify, timeout=settings.kubernetes_timeout_s
+                )
+                if resp.status_code != 200:
+                    k8s_up = 0.0
+            else:
+                k8s_up = 0.0
+        except Exception:  # noqa: BLE001 - scrapes must never raise
+            k8s_up = 0.0
+
+        yield GaugeMetricFamily(
+            "eai_fleet_up", "Fleet Manager process is serving (always 1 when scraped).", value=1.0
+        )
+        yield GaugeMetricFamily(
+            "eai_fleet_prometheus_up", "Central Prometheus DB is reachable (1/0).", value=prom_up
+        )
+        yield GaugeMetricFamily(
+            "eai_fleet_k8s_up", "Central Kubernetes API is reachable (1/0).", value=k8s_up
+        )
 
 
-class PrometheusUnavailable(RuntimeError):
-    """Central Prometheus could not be queried — the fleet view can't be derived."""
-
-
-def build_fleet_view(client: PrometheusClient) -> FleetView:
-    """Assemble the fleet view from KubeEdge node status + inference telemetry."""
-    ready = client.node_ready()
-    fps = client.gauge_by_device(FPS_METRIC)
-    gpu = client.gauge_by_device(GPU_METRIC)
-
-    device_ids = sorted(set(ready) | set(fps) | set(gpu))
-    devices = [_device_view(d, ready, fps, gpu) for d in device_ids]
-    online = sum(1 for v in devices if v.health == FleetHealth.ONLINE)
-    return FleetView(devices=devices, total=len(devices), online=online)
-
-
-def _device_view(
-    device_id: str,
-    ready: dict[str, float],
-    fps: dict[str, float],
-    gpu: dict[str, float],
-) -> DeviceView:
-    """Derive one device's view. Online ← KSM Ready; state ← fps (no state metric)."""
-    online = ready.get(device_id, 0.0) >= 1.0
-    device_fps = fps.get(device_id, 0.0)
-    state = InferenceState.RUNNING if (online and device_fps > 0.0) else InferenceState.STOPPED
-    return DeviceView(
-        device_id=device_id,
-        name=device_id,  # human name/labels can enrich this later (see issue)
-        state=state,
-        fps=device_fps,
-        gpu_utilization=gpu.get(device_id, 0.0),
-        health=FleetHealth.ONLINE if online else FleetHealth.OFFLINE,
-    )
+def start_metrics_server(collector: Collector, port: int) -> bool:
+    """Serve collector's gauges on port via a dedicated registry (best-effort)."""
+    try:
+        registry = prometheus_client.CollectorRegistry()
+        registry.register(collector)
+        prometheus_client.start_http_server(port, registry=registry)
+        log.info("Prometheus metrics exposed on :%d (scraped by the node-local agent)", port)
+        return True
+    except OSError as e:
+        log.warning("Could not start Prometheus metrics server on :%d: %s", port, e)
+        return False

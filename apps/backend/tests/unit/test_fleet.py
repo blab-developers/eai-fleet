@@ -9,7 +9,7 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 
-from app.metrics import FPS_METRIC, GPU_METRIC, build_fleet_view
+from app.prometheus import FPS_METRIC, GPU_METRIC, build_fleet_view
 from tests.conftest import FakePrometheus
 
 

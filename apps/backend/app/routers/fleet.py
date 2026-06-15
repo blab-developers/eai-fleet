@@ -15,13 +15,13 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.config import settings
 from app.k8s import K8sClient, KubernetesUnavailable
-from app.metrics import PrometheusClient, PrometheusUnavailable, build_fleet_view
 from app.models import (
     FleetView,
     ImageSetScope,
     InferenceImageRequest,
     InferenceImageResponse,
 )
+from app.prometheus import PrometheusClient, PrometheusUnavailable, build_fleet_view
 
 router = APIRouter(prefix="/api/fleet", tags=["fleet"])
 

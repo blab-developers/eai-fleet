@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 
 from app.k8s import KubernetesUnavailable
 from app.main import app
-from app.metrics import PrometheusUnavailable
+from app.prometheus import PrometheusUnavailable
 from app.routers.fleet import get_k8s, get_prometheus
 
 

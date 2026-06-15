@@ -31,6 +31,10 @@ export type DeviceView = {
      */
     gpu_utilization: number;
     health: FleetHealth;
+    /**
+     * Chromium Running
+     */
+    chromium_running?: boolean | null;
 };
 
 /**

@@ -48,6 +48,7 @@ class DeviceView(BaseModel):
     fps: float = Field(ge=0.0)
     gpu_utilization: float = Field(ge=0.0)
     health: FleetHealth
+    chromium_running: bool | None = None
 
 
 class FleetView(BaseModel):

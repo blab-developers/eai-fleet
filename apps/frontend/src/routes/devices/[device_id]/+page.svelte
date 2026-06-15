@@ -52,22 +52,36 @@
 
 	<Grid>
 		<Row>
-			<Column sm={4} md={4} lg={5}>
+			<Column sm={4} md={4} lg={4}>
 				<Tile>
 					<p class="metric-label">State</p>
 					<p class="metric-value">{device.state}</p>
 				</Tile>
 			</Column>
-			<Column sm={4} md={4} lg={5}>
+			<Column sm={4} md={4} lg={4}>
 				<Tile>
 					<p class="metric-label">FPS</p>
 					<p class="metric-value">{device.fps.toFixed(1)}</p>
 				</Tile>
 			</Column>
-			<Column sm={4} md={4} lg={5}>
+			<Column sm={4} md={4} lg={4}>
 				<Tile>
 					<p class="metric-label">GPU utilization</p>
 					<p class="metric-value">{device.gpu_utilization.toFixed(0)}%</p>
+				</Tile>
+			</Column>
+			<Column sm={4} md={4} lg={4}>
+				<Tile>
+					<p class="metric-label">Kiosk</p>
+					<p class="metric-value" data-testid="metric-detail-kiosk">
+						{#if device.chromium_running === true}
+							<Tag type="green" size="sm">active</Tag>
+						{:else if device.chromium_running === false}
+							<Tag type="red" size="sm">down</Tag>
+						{:else}
+							<Tag type="gray" size="sm">--</Tag>
+						{/if}
+					</p>
 				</Tile>
 			</Column>
 		</Row>

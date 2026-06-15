@@ -6,7 +6,7 @@ test.describe('fleet view', () => {
     await page.route(
       (url) => url.pathname === '/api/fleet/devices',
       async (route) => {
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         await route.fulfill({
           status: 200,
           contentType: 'application/json',

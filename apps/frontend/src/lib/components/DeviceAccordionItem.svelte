@@ -32,19 +32,31 @@
 		<Tile>
 			<Grid noGutter>
 				<Row>
-					<Column sm={2} md={2} lg={4}>
+					<Column sm={2} md={2} lg={3}>
 						<p class="metric-label">State</p>
 						<p class="metric-value" data-testid="metric-state">{device.state}</p>
 					</Column>
-					<Column sm={2} md={2} lg={4}>
+					<Column sm={2} md={2} lg={3}>
 						<p class="metric-label">FPS</p>
 						<p class="metric-value" data-testid="metric-fps">{device.fps.toFixed(1)}</p>
 					</Column>
-					<Column sm={2} md={2} lg={4}>
+					<Column sm={2} md={2} lg={3}>
 						<p class="metric-label">GPU</p>
 						<p class="metric-value" data-testid="metric-gpu">{device.gpu_utilization.toFixed(0)}%</p>
 					</Column>
-					<Column sm={2} md={2} lg={4}>
+					<Column sm={2} md={2} lg={3}>
+						<p class="metric-label">Kiosk</p>
+						<p class="metric-value" data-testid="metric-kiosk">
+							{#if device.chromium_running === true}
+								<Tag type="green" size="sm">active</Tag>
+							{:else if device.chromium_running === false}
+								<Tag type="red" size="sm">down</Tag>
+							{:else}
+								<Tag type="gray" size="sm">--</Tag>
+							{/if}
+						</p>
+					</Column>
+					<Column sm={2} md={2} lg={3}>
 						<p class="metric-label">Health</p>
 						<p class="metric-value" data-testid="metric-health">{device.health}</p>
 					</Column>
