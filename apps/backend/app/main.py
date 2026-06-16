@@ -8,10 +8,21 @@ heartbeat ingest. Time-series dashboards live in the central Grafana (metrics ro
 native frontend (apps/frontend) is the live fleet view + the image-set control.
 """
 
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
 from app.config import settings
 from app.routers import fleet, health
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Start the metrics exporter server on startup."""
+    from app.metrics import METRICS_PORT, FleetCollector, start_metrics_server
+
+    start_metrics_server(FleetCollector(), METRICS_PORT)
+    yield
 
 
 def create_app() -> FastAPI:
@@ -22,6 +33,7 @@ def create_app() -> FastAPI:
         title="fleet-mgr",
         version="0.1.0",
         generate_unique_id_function=lambda route: route.name,
+        lifespan=lifespan,
     )
     app.include_router(health.router)
     app.include_router(fleet.router)

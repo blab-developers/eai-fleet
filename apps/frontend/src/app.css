@@ -1,0 +1,80 @@
+/* Global stylesheet — imported once by the root +layout.svelte so Vite/SvelteKit
+   bundles it. Holds the Carbon v11 grid backfill.
+   The Carbon g90 theme is imported DIRECTLY in +layout.svelte (not @import'd here)
+   so the fix-carbon-invalid-media-query vite transform can rewrite g90's illegal
+   `min-resolution >=` media query before minify. */
+
+/* ---------------------------------------------------------------------------
+   Carbon v11 CSS Grid backfill.
+
+   carbon-components-svelte 1.0.0-next ships the Grid/Row/Column components but
+   NOT the grid layout CSS. Without these rules every <Row> collapses to stacked
+   full-width columns. This is the minimal faithful subset of Carbon's 16-column
+   CSS grid used by the app. Delete this block if a future release bundles it.
+   --------------------------------------------------------------------------- */
+.bx--grid {
+	margin-right: auto;
+	margin-left: auto;
+	max-width: 99rem;
+	padding-right: 1rem;
+	padding-left: 1rem;
+}
+.bx--row {
+	display: grid;
+	grid-template-columns: repeat(16, 1fr);
+	column-gap: 2rem;
+	row-gap: 2rem;
+}
+.bx--row + .bx--row {
+	margin-top: 2rem;
+}
+[class*='bx--col'] {
+	width: 100%;
+}
+
+/* sm: 4-column baseline. In a 16-column grid, 4 columns spans all 16. */
+.bx--col-sm-4 {
+	grid-column: span 16;
+}
+
+/* md: 8-column grid. In a 16-column grid, each md column spans double. */
+@media (min-width: 42rem) {
+	.bx--col-md-2 {
+		grid-column: span 4;
+	}
+	.bx--col-md-4 {
+		grid-column: span 8;
+	}
+	.bx--col-md-6 {
+		grid-column: span 12;
+	}
+	.bx--col-md-8 {
+		grid-column: span 16;
+	}
+}
+
+/* lg: 16-column grid. */
+@media (min-width: 66rem) {
+	.bx--col-lg-4 {
+		grid-column: span 4;
+	}
+	.bx--col-lg-5 {
+		grid-column: span 5;
+	}
+	.bx--col-lg-6 {
+		grid-column: span 6;
+	}
+	.bx--col-lg-8 {
+		grid-column: span 8;
+	}
+	.bx--col-lg-10 {
+		grid-column: span 10;
+	}
+	.bx--col-lg-12 {
+		grid-column: span 12;
+	}
+	.bx--col-lg-16 {
+		grid-column: span 16;
+	}
+}
+

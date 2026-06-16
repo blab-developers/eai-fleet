@@ -2,7 +2,7 @@
 
 fleet-mgr holds no device state (Spec 008). Online/offline comes from **KubeEdge node
 status** (surfaced centrally by kube-state-metrics) and telemetry from the nano agents'
-remote_written ``eai_inference_*`` series. This module queries the central Prometheus
+remote_written ``eai_*`` series. This module queries the central Prometheus
 instant-query HTTP API and returns plain ``{identity: value}`` maps; ``build_fleet_view``
 composes them into the fleet view.
 
@@ -29,6 +29,7 @@ NODE_READY_QUERY = (
 # Live telemetry — keyed by the `device_id` external label.
 FPS_METRIC = "eai_inference_fps"
 GPU_METRIC = "eai_inference_gpu_utilization"
+CHROMIUM_RUNNING_METRIC = "eai_chromium_running"
 
 
 class PrometheusClient:
@@ -71,13 +72,14 @@ class PrometheusUnavailable(RuntimeError):
 
 
 def build_fleet_view(client: PrometheusClient) -> FleetView:
-    """Assemble the fleet view from KubeEdge node status + inference telemetry."""
+    """Assemble the fleet view from KubeEdge node status + inference telemetry + chromium status."""
     ready = client.node_ready()
     fps = client.gauge_by_device(FPS_METRIC)
     gpu = client.gauge_by_device(GPU_METRIC)
+    chromium = client.gauge_by_device(CHROMIUM_RUNNING_METRIC)
 
-    device_ids = sorted(set(ready) | set(fps) | set(gpu))
-    devices = [_device_view(d, ready, fps, gpu) for d in device_ids]
+    device_ids = sorted(set(ready) | set(fps) | set(gpu) | set(chromium))
+    devices = [_device_view(d, ready, fps, gpu, chromium) for d in device_ids]
     online = sum(1 for v in devices if v.health == FleetHealth.ONLINE)
     return FleetView(devices=devices, total=len(devices), online=online)
 
@@ -87,11 +89,18 @@ def _device_view(
     ready: dict[str, float],
     fps: dict[str, float],
     gpu: dict[str, float],
+    chromium: dict[str, float],
 ) -> DeviceView:
     """Derive one device's view. Online ← KSM Ready; state ← fps (no state metric)."""
     online = ready.get(device_id, 0.0) >= 1.0
     device_fps = fps.get(device_id, 0.0)
+    device_chromium = chromium.get(device_id, None)
     state = InferenceState.RUNNING if (online and device_fps > 0.0) else InferenceState.STOPPED
+
+    chromium_running = None
+    if device_chromium is not None:
+        chromium_running = device_chromium >= 1.0
+
     return DeviceView(
         device_id=device_id,
         name=device_id,  # human name/labels can enrich this later (see issue)
@@ -99,4 +108,5 @@ def _device_view(
         fps=device_fps,
         gpu_utilization=gpu.get(device_id, 0.0),
         health=FleetHealth.ONLINE if online else FleetHealth.OFFLINE,
+        chromium_running=chromium_running,
     )
