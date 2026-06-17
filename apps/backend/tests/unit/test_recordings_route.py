@@ -9,7 +9,7 @@ import httpx2
 import pytest
 
 import app.routers.fleet as fleet_mod
-from recordings_pull import PullSummary
+from app.recordings_pull import PullSummary
 
 _DEVICE = "orin-01"
 

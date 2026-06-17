@@ -8,8 +8,8 @@ list carries no sha256/size, so "file exists locally" is the skip key.
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-import recordings_pull as rp
-from recordings_pull import RecordingsPuller, SavedSession
+import app.recordings_pull as rp
+from app.recordings_pull import RecordingsPuller, SavedSession
 
 
 def _saved_payload(

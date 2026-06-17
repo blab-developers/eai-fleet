@@ -28,7 +28,7 @@ from app.models import (
     RecordingsPullResponse,
 )
 from app.prometheus import PrometheusClient, PrometheusUnavailable, build_fleet_view
-from recordings_pull import RecordingsPuller
+from app.recordings_pull import RecordingsPuller
 
 router = APIRouter(prefix="/api/fleet", tags=["fleet"])
 
