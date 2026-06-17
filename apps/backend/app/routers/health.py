@@ -1,47 +1,20 @@
-"""Standard health probes: ``/health/live`` + ``/health/ready``.
+"""Standard ``/health/live`` + ``/health/ready`` probes, from the shared ``eai.health`` factory.
 
-Shape-parity with eai-nano's ``eai.health`` factory **without** taking the eai-core
-dependency — fleet-mgr keeps its minimal footprint (fastapi/uvicorn/httpx2/pydantic). The
-external contract (paths, ``alive``/``ready``/``not_ready`` vocab, response schema) is
-identical, so every EAI service probes the same way and k8s can gate uniformly.
+Standardized across every EAI service via ``eai.health`` (parity with eai-nano + eai-catalog);
+the router shape, status codes, and response schema are shared, so k8s gates uniformly and only
+the readiness predicate is app-specific.
 
 fleet-mgr is a **stateless read-through over Prometheus** (no DB, no startup gate), so it is
-ready the moment it serves; per-dependency detail (Prometheus reachable?) is telemetry, not a
-probe trigger. Liveness is always 200 while the process serves.
+ready the moment it serves; per-dependency detail (Prometheus reachable?) is the ``/metrics``
+telemetry, never a probe trigger. Liveness is always 200 while the process serves.
 """
 
-from enum import StrEnum
-
-from fastapi import APIRouter
-from pydantic import BaseModel
-
-router = APIRouter(tags=["health"])
+from eai.health import build_health_router
 
 
-class HealthStatus(StrEnum):
-    ALIVE = "alive"
-    READY = "ready"
-    NOT_READY = "not_ready"
+async def _ready() -> tuple[bool, str | None]:
+    """Readiness: fleet-mgr is ready as soon as it serves (stateless read-through)."""
+    return True, None
 
 
-class Liveness(BaseModel):
-    """Response body: GET /health/live — the process is up."""
-
-    status: HealthStatus = HealthStatus.ALIVE
-
-
-class Readiness(BaseModel):
-    """Response body: GET /health/ready — ready to receive traffic (or why not)."""
-
-    status: HealthStatus
-    reason: str | None = None
-
-
-@router.get("/health/live", response_model=Liveness)
-def live() -> Liveness:
-    return Liveness(status=HealthStatus.ALIVE)
-
-
-@router.get("/health/ready", response_model=Readiness)
-def ready() -> Readiness:
-    return Readiness(status=HealthStatus.READY)
+router = build_health_router(_ready)
