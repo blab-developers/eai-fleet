@@ -156,7 +156,11 @@ deploy:
   variables:
     DOCKER_HOST: unix:///var/run/docker.sock
   script:
-    - cd /usr/local/eai/workspace/eai-infra && make deploy-fleet-prod
+    # Pull latest eai-infra first: this job uses a fixed checkout on the runner
+    # and never updated it, so a stale checkout could deploy old infra logic
+    # (e.g. missing the legacy-container removal task → "port already allocated").
+    - cd /usr/local/eai/workspace/eai-infra && git fetch && git checkout main && git pull --ff-only
+    - make deploy-fleet-prod
     - docker image prune -f
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
