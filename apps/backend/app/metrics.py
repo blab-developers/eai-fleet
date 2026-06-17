@@ -1,23 +1,20 @@
 """Prometheus exposition for fleet-mgr itself (Spec 025 §1c parity).
 
-It runs a dedicated Prometheus metrics server on port 9094.
+Defines the fleet-mgr collector + its dedicated port (9094); the shared
+``eai.metrics.start_metrics_server`` serves it (wired in ``main.lifespan``).
 The exporter exposes:
   - eai_fleet_up: fleet-mgr process status (always 1.0)
   - eai_fleet_prometheus_up: central Prometheus connectivity (1.0 / 0.0)
   - eai_fleet_k8s_up: Kubernetes API connectivity (1.0 / 0.0)
 """
 
-import logging
 from collections.abc import Iterable
 
 import httpx2
-import prometheus_client
 from prometheus_client.core import GaugeMetricFamily, Metric
 from prometheus_client.registry import Collector
 
 from app.config import settings
-
-log = logging.getLogger(__name__)
 
 METRICS_PORT = 9094
 
@@ -70,16 +67,3 @@ class FleetCollector(Collector):
         yield GaugeMetricFamily(
             "eai_fleet_k8s_up", "Central Kubernetes API is reachable (1/0).", value=k8s_up
         )
-
-
-def start_metrics_server(collector: Collector, port: int) -> bool:
-    """Serve collector's gauges on port via a dedicated registry (best-effort)."""
-    try:
-        registry = prometheus_client.CollectorRegistry()
-        registry.register(collector)
-        prometheus_client.start_http_server(port, registry=registry)
-        log.info("Prometheus metrics exposed on :%d (scraped by the node-local agent)", port)
-        return True
-    except OSError as e:
-        log.warning("Could not start Prometheus metrics server on :%d: %s", port, e)
-        return False
