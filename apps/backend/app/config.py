@@ -42,6 +42,16 @@ class Settings(BaseSettings):
     model_cache_dir: Path = CACHE_DIR / "models"
     model_deploy_timeout_s: float = 60.0
 
+    # --- Recordings replication (RecordingsPuller) ---
+    # Destination for pulled nano recordings (mp4 + ndjson sidecar). In prod this
+    # is the shared NFS mount the eai-catalog device-prediction ingest reads
+    # (EAI_FLEET_RECORDINGS_DIR=/mnt/eai/eai-backups/eai-nano). The per-device
+    # nano base_url + bearer token are caller-supplied per pull (like model deploy),
+    # since fleet has no device→URL map (Spec 008: stateless, no device state).
+    recordings_dir: Path = CACHE_DIR / "recordings"
+    recordings_pull_timeout_s: float = 30.0
+    recordings_pull_page_size: int = 100
+
     # --- Kubernetes (image-set endpoint) ---
     # Defaults match the canonical in-cluster SA mount. The eai-infra role drops
     # a token + the k3s CA at these paths for the docker container (not a Pod).

@@ -115,3 +115,32 @@ class ModelDeployResponse(BaseModel):
     package_sha256: str
     nano_model_id: str
     scope: ImageSetScope
+
+
+class RecordingsPullRequest(BaseModel):
+    """POST body for pulling one nano's saved recordings into the shared dir.
+
+    base_url + token are caller-supplied (fleet has no device→URL map; Spec 008),
+    mirroring the model-deploy contract.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    nano_base_url: str = Field(min_length=1, description="Reachable eai-nano backend base URL.")
+    nano_token: str = Field(
+        default="", description="Bearer token for the nano backend, if enabled."
+    )
+
+
+class RecordingsPullResponse(BaseModel):
+    """Response from ``POST /api/fleet/devices/{id}/recordings/pull`` — the pull tally."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    device_id: str
+    dest_dir: str
+    sessions_total: int
+    pulled: int
+    skipped: int
+    failed: int
+    bytes_pulled: int

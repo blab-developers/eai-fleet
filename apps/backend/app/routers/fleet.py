@@ -24,8 +24,11 @@ from app.models import (
     InferenceImageResponse,
     ModelDeployRequest,
     ModelDeployResponse,
+    RecordingsPullRequest,
+    RecordingsPullResponse,
 )
 from app.prometheus import PrometheusClient, PrometheusUnavailable, build_fleet_view
+from recordings_pull import RecordingsPuller
 
 router = APIRouter(prefix="/api/fleet", tags=["fleet"])
 
@@ -152,3 +155,40 @@ def deploy_model_package(
         nano_model_id=installed.model_id,
         scope=ImageSetScope.DEVICE,
     )
+
+
+@router.post(
+    "/devices/{device_id}/recordings/pull",
+    response_model=RecordingsPullResponse,
+)
+def pull_recordings(
+    device_id: str,
+    request: RecordingsPullRequest,
+    prometheus: PrometheusDep,
+) -> RecordingsPullResponse:
+    """Pull one nano's saved recordings (mp4 + ndjson sidecar) into the shared dir.
+
+    Central-initiated PULL (Spec 024): lists the nano's ``/api/sessions/saved`` and
+    downloads any session not already on disk under
+    ``recordings_dir/<device_id>/<inference_id>/``. The eai-catalog device-prediction
+    ingest reads sidecars from there. ``nano_base_url`` + ``nano_token`` are
+    caller-supplied (fleet keeps no device→URL map); a k8s CronJob or operator drives
+    the schedule. Idempotent — present files are skipped.
+
+    Errors: 404 if ``device_id`` isn't in the fleet view; 502 if Prometheus (used to
+    validate the device) or the nano download fails.
+    """
+    _assert_device_exists(device_id, prometheus)
+    dest = settings.recordings_dir / device_id
+    puller = RecordingsPuller(
+        base_url=request.nano_base_url,
+        token=request.nano_token,
+        dest_dir=dest,
+        timeout_s=settings.recordings_pull_timeout_s,
+        page_size=settings.recordings_pull_page_size,
+    )
+    try:
+        summary = puller.reconcile()
+    except httpx2.HTTPError as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+    return RecordingsPullResponse(device_id=device_id, dest_dir=str(dest), **summary.model_dump())

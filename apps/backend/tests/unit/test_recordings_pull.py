@@ -1,36 +1,25 @@
-"""Unit tests for the recordings PULL core — diff, download (ranged), sha256 verify.
+"""Unit tests for the recordings PULL core — list, download (ranged), idempotency.
 
 No live nano, no cluster: httpx2 is mocked. The downloaded files on disk are the receipt,
-so reconcile() is idempotent and exact duplicates are skipped (Spec 024).
+so reconcile() is idempotent — present files are skipped (Spec 024). The nano's saved-session
+list carries no sha256/size, so "file exists locally" is the skip key.
 """
 
-import hashlib
-from datetime import datetime
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import recordings_pull as rp
-from recordings_pull import ManifestFile, RecordingsPuller, plan_pulls
+from recordings_pull import RecordingsPuller, SavedSession
 
 
-def _mf(mid: str, kind: str, filename: str, data: bytes) -> ManifestFile:
-    return ManifestFile(
-        media_file_id=mid,
-        kind=kind,
-        filename=filename,
-        size_bytes=len(data),
-        sha256=hashlib.sha256(data).hexdigest(),
-        created_at=datetime(2026, 6, 2),
-    )
-
-
-def _manifest_payload(files: list[ManifestFile]) -> dict[str, object]:
+def _saved_payload(
+    sessions: list[SavedSession], total: int | None = None, offset: int = 0
+) -> dict[str, object]:
     return {
-        "device_id": "nano-1",
-        "files": [f.model_dump(mode="json") for f in files],
-        "total": len(files),
+        "items": [s.model_dump(mode="json") for s in sessions],
+        "total": total if total is not None else len(sessions),
         "limit": 100,
-        "offset": 0,
+        "offset": offset,
     }
 
 
@@ -52,74 +41,72 @@ def _stream_mock(data: bytes, status_code: int = 200) -> MagicMock:
     return ctx
 
 
-def test_plan_pulls_diffs_against_disk(tmp_path: Path):
-    data = b"video-bytes"
-    manifest = [
-        _mf("v1", "video", "video.mp4", data),
-        _mf("s1", "sidecar", "sidecar.ndjson", b"{}"),
-    ]
-    # v1 already on disk with matching bytes → only s1 needs pulling.
-    p = tmp_path / "v1" / "video.mp4"
-    p.parent.mkdir(parents=True)
-    p.write_bytes(data)
-
-    todo = plan_pulls(manifest, tmp_path)
-    assert [f.media_file_id for f in todo] == ["s1"]
-
-
-def test_plan_skips_unsealed_and_unhashed(tmp_path: Path):
-    manifest = [
-        ManifestFile(
-            media_file_id="x",
-            kind="video",
-            filename="v.mp4",
-            size_bytes=1,
-            sha256=None,
-            created_at=datetime(2026, 6, 2),
-        ),
-        ManifestFile(
-            media_file_id="y",
-            kind="video",
-            filename="v.mp4",
-            size_bytes=1,
-            sha256="abc",
-            created_at=datetime(2026, 6, 2),
-            sealed=False,
-        ),
-    ]
-    assert plan_pulls(manifest, tmp_path) == []
-
-
-def test_reconcile_downloads_verifies_and_is_idempotent(tmp_path: Path):
-    data = b"the-video-bytes"
-    payload = _manifest_payload([_mf("v1", "video", "video.mp4", data)])
-
+def test_reconcile_pulls_video_and_sidecar_then_idempotent(tmp_path: Path) -> None:
+    sess = SavedSession(inference_id="VID0001", has_sidecar=True)
     with (
-        patch.object(rp.httpx2, "get", return_value=_get_mock(payload)),
-        patch.object(rp.httpx2, "stream", return_value=_stream_mock(data)),
+        patch.object(rp.httpx2, "get", return_value=_get_mock(_saved_payload([sess]))),
+        patch.object(rp.httpx2, "stream", return_value=_stream_mock(b"bytes")),
     ):
         summary = RecordingsPuller("http://nano-1:8000", "tok", tmp_path).reconcile()
 
-    assert (summary.pulled, summary.failed, summary.skipped) == (1, 0, 0)
-    assert (tmp_path / "v1" / "video.mp4").read_bytes() == data
+    assert (summary.sessions_total, summary.pulled, summary.skipped, summary.failed) == (1, 2, 0, 0)
+    assert (tmp_path / "VID0001" / "VID0001.mp4").exists()
+    assert (tmp_path / "VID0001" / "VID0001.ndjson").exists()
 
-    # Re-run: file present + sha matches → skipped (the receipt is the file).
+    # Re-run: both files present → skipped, nothing downloaded (the file is the receipt).
     with (
-        patch.object(rp.httpx2, "get", return_value=_get_mock(payload)),
-        patch.object(rp.httpx2, "stream", return_value=_stream_mock(data)) as stream,
+        patch.object(rp.httpx2, "get", return_value=_get_mock(_saved_payload([sess]))),
+        patch.object(rp.httpx2, "stream", return_value=_stream_mock(b"bytes")) as stream,
     ):
         again = RecordingsPuller("http://nano-1:8000", "tok", tmp_path).reconcile()
-    assert (again.pulled, again.skipped) == (0, 1)
-    stream.assert_not_called()  # nothing to download
+    assert (again.pulled, again.skipped) == (0, 2)
+    stream.assert_not_called()
 
 
-def test_reconcile_rejects_sha_mismatch(tmp_path: Path):
-    payload = _manifest_payload([_mf("v1", "video", "v.mp4", b"good-bytes")])
+def test_reconcile_skips_sidecar_when_absent(tmp_path: Path) -> None:
+    sess = SavedSession(inference_id="VID0002", has_sidecar=False)
     with (
-        patch.object(rp.httpx2, "get", return_value=_get_mock(payload)),
-        patch.object(rp.httpx2, "stream", return_value=_stream_mock(b"CORRUPTED")),
+        patch.object(rp.httpx2, "get", return_value=_get_mock(_saved_payload([sess]))),
+        patch.object(rp.httpx2, "stream", return_value=_stream_mock(b"v")),
+    ):
+        summary = RecordingsPuller("http://nano-1:8000", "tok", tmp_path).reconcile()
+
+    assert (summary.pulled, summary.skipped) == (1, 0)
+    assert (tmp_path / "VID0002" / "VID0002.mp4").exists()
+    assert not (tmp_path / "VID0002" / "VID0002.ndjson").exists()
+
+
+def test_reconcile_counts_download_failure(tmp_path: Path) -> None:
+    sess = SavedSession(inference_id="VID0003", has_sidecar=False)
+
+    def _raise(*_a: object, **_k: object) -> None:
+        raise rp.httpx2.HTTPError("boom")
+
+    with (
+        patch.object(rp.httpx2, "get", return_value=_get_mock(_saved_payload([sess]))),
+        patch.object(rp.httpx2, "stream", side_effect=_raise),
     ):
         summary = RecordingsPuller("http://nano-1:8000", "tok", tmp_path).reconcile()
 
     assert (summary.pulled, summary.failed) == (0, 1)
-    assert not (tmp_path / "v1" / "v.mp4").exists()  # corrupt download discarded
+    assert not (tmp_path / "VID0003" / "VID0003.mp4").exists()  # partial not promoted
+
+
+def test_fetch_sessions_paginates(tmp_path: Path) -> None:
+    pages = [
+        _saved_payload(
+            [SavedSession(inference_id="a"), SavedSession(inference_id="b")], total=3, offset=0
+        ),
+        _saved_payload([SavedSession(inference_id="c")], total=3, offset=2),
+    ]
+    seq = iter(pages)
+
+    def _get(*_a: object, **_k: object) -> MagicMock:
+        return _get_mock(next(seq))
+
+    with patch.object(rp.httpx2, "get", side_effect=_get):
+        sessions = RecordingsPuller(
+            "http://nano-1:8000", "tok", tmp_path, page_size=2
+        ).fetch_sessions()
+
+    assert [s.inference_id for s in sessions] == ["a", "b", "c"]
