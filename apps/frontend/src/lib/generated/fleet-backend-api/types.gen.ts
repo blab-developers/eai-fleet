@@ -213,6 +213,65 @@ export type Readiness = {
 };
 
 /**
+ * RecordingsPullRequest
+ *
+ * POST body for pulling one nano's saved recordings into the shared dir.
+ *
+ * base_url + token are caller-supplied (fleet has no device→URL map; Spec 008),
+ * mirroring the model-deploy contract.
+ */
+export type RecordingsPullRequest = {
+    /**
+     * Nano Base Url
+     *
+     * Reachable eai-nano backend base URL.
+     */
+    nano_base_url: string;
+    /**
+     * Nano Token
+     *
+     * Bearer token for the nano backend, if enabled.
+     */
+    nano_token?: string;
+};
+
+/**
+ * RecordingsPullResponse
+ *
+ * Response from ``POST /api/fleet/devices/{id}/recordings/pull`` — the pull tally.
+ */
+export type RecordingsPullResponse = {
+    /**
+     * Device Id
+     */
+    device_id: string;
+    /**
+     * Dest Dir
+     */
+    dest_dir: string;
+    /**
+     * Sessions Total
+     */
+    sessions_total: number;
+    /**
+     * Pulled
+     */
+    pulled: number;
+    /**
+     * Skipped
+     */
+    skipped: number;
+    /**
+     * Failed
+     */
+    failed: number;
+    /**
+     * Bytes Pulled
+     */
+    bytes_pulled: number;
+};
+
+/**
  * ValidationError
  */
 export type ValidationError = {
@@ -351,3 +410,33 @@ export type DeployModelPackageResponses = {
 };
 
 export type DeployModelPackageResponse = DeployModelPackageResponses[keyof DeployModelPackageResponses];
+
+export type PullRecordingsData = {
+    body: RecordingsPullRequest;
+    path: {
+        /**
+         * Device Id
+         */
+        device_id: string;
+    };
+    query?: never;
+    url: '/api/fleet/devices/{device_id}/recordings/pull';
+};
+
+export type PullRecordingsErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type PullRecordingsError = PullRecordingsErrors[keyof PullRecordingsErrors];
+
+export type PullRecordingsResponses = {
+    /**
+     * Successful Response
+     */
+    200: RecordingsPullResponse;
+};
+
+export type PullRecordingsResponse = PullRecordingsResponses[keyof PullRecordingsResponses];

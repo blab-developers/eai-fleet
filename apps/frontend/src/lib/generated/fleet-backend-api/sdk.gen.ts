@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeployModelPackageData, DeployModelPackageErrors, DeployModelPackageResponses, ListDevicesData, ListDevicesResponses, LiveData, LiveResponses, ReadyData, ReadyResponses, SetInferenceImageData, SetInferenceImageErrors, SetInferenceImageResponses } from './types.gen';
+import type { DeployModelPackageData, DeployModelPackageErrors, DeployModelPackageResponses, ListDevicesData, ListDevicesResponses, LiveData, LiveResponses, PullRecordingsData, PullRecordingsErrors, PullRecordingsResponses, ReadyData, ReadyResponses, SetInferenceImageData, SetInferenceImageErrors, SetInferenceImageResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -70,6 +70,30 @@ export const setInferenceImage = <ThrowOnError extends boolean = false>(options:
  */
 export const deployModelPackage = <ThrowOnError extends boolean = false>(options: Options<DeployModelPackageData, ThrowOnError>): RequestResult<DeployModelPackageResponses, DeployModelPackageErrors, ThrowOnError> => (options.client ?? client).post<DeployModelPackageResponses, DeployModelPackageErrors, ThrowOnError>({
     url: '/api/fleet/devices/{device_id}/models/{model_version_id}/deploy',
+    ...options,
+    headers: {
+        'Content-Type': 'application/json',
+        ...options.headers
+    }
+});
+
+/**
+ * Pull Recordings
+ *
+ * Pull one nano's saved recordings (mp4 + ndjson sidecar) into the shared dir.
+ *
+ * Central-initiated PULL (Spec 024): lists the nano's ``/api/sessions/saved`` and
+ * downloads any session not already on disk under
+ * ``recordings_dir/<device_id>/<inference_id>/``. The eai-catalog device-prediction
+ * ingest reads sidecars from there. ``nano_base_url`` + ``nano_token`` are
+ * caller-supplied (fleet keeps no device→URL map); a k8s CronJob or operator drives
+ * the schedule. Idempotent — present files are skipped.
+ *
+ * Errors: 404 if ``device_id`` isn't in the fleet view; 502 if Prometheus (used to
+ * validate the device) or the nano download fails.
+ */
+export const pullRecordings = <ThrowOnError extends boolean = false>(options: Options<PullRecordingsData, ThrowOnError>): RequestResult<PullRecordingsResponses, PullRecordingsErrors, ThrowOnError> => (options.client ?? client).post<PullRecordingsResponses, PullRecordingsErrors, ThrowOnError>({
+    url: '/api/fleet/devices/{device_id}/recordings/pull',
     ...options,
     headers: {
         'Content-Type': 'application/json',

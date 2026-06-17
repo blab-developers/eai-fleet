@@ -12,7 +12,9 @@
 
 .PHONY: help install dev dev-backend dev-frontend \
         test test-backend test-frontend lint lint-backend lint-frontend \
-        build build-backend build-frontend push gen-types-check
+        build build-backend build-frontend push gen-types-check \
+        ci-lint ci-lint-backend ci-lint-frontend \
+        ci-test ci-test-backend ci-test-frontend ci-gen-types-check
 
 REGISTRY ?= localhost:30500
 GIT_SHA  ?= $(shell git rev-parse HEAD 2>/dev/null || echo unknown)
@@ -81,9 +83,37 @@ lint-frontend: ## svelte-check (frontend)
 # =============================================================================
 
 gen-types-check: ## Regenerate the API client and fail on drift
-	cd $(FRONTEND_DIR) && yarn gen:api
+	cd $(FRONTEND_DIR) && yarn gen:backend-api
 	git diff --exit-code $(FRONTEND_DIR)/src/lib/generated/ \
-		|| (echo "ERROR: generated API client is stale — run 'yarn gen:api' in apps/frontend" && exit 1)
+		|| (echo "ERROR: generated API client is stale — run 'yarn gen:backend-api' in apps/frontend" && exit 1)
+
+# =============================================================================
+# CI entrypoints — what .gitlab-ci.yml runs. Unlike the local `lint`/`test`
+# targets (which use the backend venv), these use the system interpreter: CI
+# pip-installs the deps globally and has no venv. Keep these in sync with the
+# `make ci-*` calls in .gitlab-ci.yml.
+# =============================================================================
+
+ci-lint: ci-lint-backend ci-lint-frontend ## CI: lint both apps
+
+ci-lint-backend: ## CI: ruff + pyright (backend), system interpreter
+	cd $(BACKEND_DIR) && ruff check . && ruff format --check . && pyright .
+
+ci-lint-frontend: ## CI: svelte-check (frontend)
+	cd $(FRONTEND_DIR) && yarn check
+
+ci-test: ci-test-backend ci-test-frontend ## CI: test both apps
+
+ci-test-backend: ## CI: pytest (fake Prometheus + fake k8s; no Docker, no cluster)
+	cd $(BACKEND_DIR) && pytest -q --timeout=60
+
+ci-test-frontend: ## CI: playwright e2e (mocks /api in-browser)
+	cd $(FRONTEND_DIR) && yarn test:e2e
+
+ci-gen-types-check: ## CI: regenerate the API client and fail on drift
+	cd $(FRONTEND_DIR) && yarn gen:backend-api
+	git diff --exit-code $(FRONTEND_DIR)/src/lib/generated/ \
+		|| (echo "ERROR: generated API client is stale — run 'yarn gen:backend-api' in apps/frontend" && exit 1)
 
 # =============================================================================
 # Build & Push
