@@ -32,6 +32,10 @@ export const ready = <ThrowOnError extends boolean = false>(options?: Options<Re
  * List Devices
  *
  * The whole fleet, derived from node status + inference telemetry.
+ *
+ * When ``EAI_FLEET_DEMO_MODE`` is set AND the real derived fleet is empty, canned demo devices
+ * are injected (each ``demo=True``); the frontend's per-browser toggle shows/hides them
+ * (frontend calls the shots). In production (demo off) this is a pure derived view.
  */
 export const listDevices = <ThrowOnError extends boolean = false>(options?: Options<ListDevicesData, ThrowOnError>): RequestResult<ListDevicesResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ListDevicesResponses, unknown, ThrowOnError>({ url: '/api/fleet/devices', ...options });
 

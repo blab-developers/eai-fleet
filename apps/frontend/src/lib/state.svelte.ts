@@ -8,6 +8,8 @@
 
 import { listDevices, type DeviceView } from '$lib/generated/fleet-backend-api';
 import { getErrorMessage } from '$lib/errors';
+import { applyDemoFilter, isDemoDevice } from '$lib/demo';
+import { preferences } from '$lib/preferences.svelte';
 import type { HealthFilter, SortKey } from '$lib/models';
 
 export const POLL_MS = 5000;
@@ -63,7 +65,9 @@ class FleetStore {
 
 	private _applyFilterAndSort(devices: DeviceView[]): DeviceView[] {
 		const query = this.searchQuery.trim().toLowerCase();
-		let result = devices;
+		// Demo mode (frontend calls the shots): hide backend-marked demo=True devices when the
+		// operator's per-browser toggle is off. Reactive on preferences.demoMode.
+		let result = applyDemoFilter(devices, isDemoDevice, preferences.demoMode);
 
 		if (query) {
 			result = result.filter(

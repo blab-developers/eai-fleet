@@ -25,3 +25,11 @@ export const IMAGE_TAG_PATTERN = /^(?:[a-zA-Z0-9](?:[a-zA-Z0-9._-]*[a-zA-Z0-9])?
 export function isValidImageTag(value: string): boolean {
 	return IMAGE_TAG_PATTERN.test(value.trim());
 }
+
+/**
+ * Per-browser UI preferences persisted to localStorage. This is NOT config (deploy-time env)
+ * and NOT device state (server-owned); it only remembers what THIS browser last chose.
+ */
+export interface StoredPrefs {
+	demoMode: boolean;
+}
