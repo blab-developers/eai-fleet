@@ -33,6 +33,10 @@ class FleetStore {
 
 	offline = $derived(this.total - this.online);
 
+	/** A search query or health filter is active — distinguishes "filtered to empty" from
+	 * "all devices are demo-hidden" so the empty state shows the right message. */
+	hasActiveFilter = $derived(this.searchQuery.trim() !== '' || this.healthFilter !== 'all');
+
 	filteredDevices = $derived(this._applyFilterAndSort(this.devices));
 	filteredTotal = $derived(this.filteredDevices.length);
 	filteredOnline = $derived(this.filteredDevices.filter((d) => d.health === 'online').length);

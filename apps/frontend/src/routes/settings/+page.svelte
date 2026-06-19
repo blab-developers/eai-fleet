@@ -2,15 +2,24 @@
 	import { Button, Grid, Row, Column, Tile, Toggle } from 'carbon-components-svelte';
 	import { Reset } from 'carbon-icons-svelte';
 	import { preferences } from '$lib/preferences.svelte';
+	import PageHeader from '$lib/components/PageHeader.svelte';
 </script>
 
-<h1 data-testid="settings-heading">Settings</h1>
+<PageHeader
+	title="Settings"
+	description="Fleet view preferences for this browser."
+	testid="settings-heading"
+/>
 
 <Grid>
 	<Row>
 		<Column sm={4} md={8} lg={8}>
 			<Tile data-testid="demo-tile">
-				<h2>Demo mode</h2>
+				<h3 class="tile-heading">Demo mode</h3>
+				<p class="muted spaced">
+					Shows clearly-fake demo devices in the fleet view (on by default). Turn it off to hide
+					them and see only real devices.
+				</p>
 				<Toggle
 					labelText="Show demo devices"
 					labelA="off"
@@ -23,7 +32,11 @@
 		</Column>
 		<Column sm={4} md={8} lg={8}>
 			<Tile data-testid="preferences-tile">
-				<h2>Local preferences</h2>
+				<h3 class="tile-heading">Local preferences</h3>
+				<p class="muted spaced">
+					Per-browser settings stored on this device only. Resetting restores the defaults
+					(demo devices shown).
+				</p>
 				<Button kind="tertiary" size="sm" icon={Reset} onclick={() => preferences.clear()}>
 					Reset preferences
 				</Button>
@@ -32,15 +45,19 @@
 	</Row>
 </Grid>
 
-<style lang="scss">
-	h1 {
-		font-size: var(--bx-productive-heading-03-font-size, 1.25rem);
-		font-weight: 400;
-		margin: 0 0 var(--bx-spacing-06);
+<style>
+	/* Mirrors eai-nano's settings tile idiom (tile-heading + muted/spaced), Carbon design tokens. */
+	.muted {
+		color: var(--cds-text-secondary);
+		font-size: var(--bx-body-long-01-font-size, 0.875rem);
 	}
-	h2 {
+	.spaced {
+		margin-bottom: var(--bx-spacing-05, 1rem);
+	}
+	.tile-heading {
+		margin: 0 0 var(--bx-spacing-05, 1rem);
 		font-size: var(--bx-productive-heading-02-font-size, 1rem);
 		font-weight: 600;
-		margin: 0 0 var(--bx-spacing-05);
+		color: var(--cds-text-primary);
 	}
 </style>

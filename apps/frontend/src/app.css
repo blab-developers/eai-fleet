@@ -5,6 +5,36 @@
    `min-resolution >=` media query before minify. */
 
 /* ---------------------------------------------------------------------------
+   Header action chrome.
+
+   The bundled carbon-components-svelte `css/g90.css` omits the header action ICON
+   color, so a header gear renders black-on-dark (invisible). Restore Carbon's themed
+   header action color + hover/active, and lay out the labeled Settings action (gear +
+   the word) rather than a bare icon-only HeaderGlobalAction. Mirrors eai-nano.
+   --------------------------------------------------------------------------- */
+.bx--header__action {
+	color: var(--cds-text-secondary, #c6c6c6);
+}
+.bx--header__action:hover {
+	background-color: var(--cds-background-hover, #4c4c4c);
+	color: var(--cds-text-primary, #f4f4f4);
+}
+.bx--header__action--active,
+.bx--header__action--active:hover {
+	color: var(--cds-text-primary, #f4f4f4);
+	border-bottom: 2px solid var(--cds-border-interactive, #4589ff);
+}
+.settings-action {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	width: auto;
+	padding: 0 1rem;
+	font-size: 0.875rem;
+	cursor: pointer;
+}
+
+/* ---------------------------------------------------------------------------
    Carbon v11 CSS Grid backfill.
 
    carbon-components-svelte 1.0.0-next ships the Grid/Row/Column components but

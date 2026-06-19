@@ -29,7 +29,7 @@
 	{/if}
 
 	{#if fleetStore.filteredDevices.length === 0}
-		<EmptyState filtered={fleetStore.total > 0} />
+		<EmptyState filtered={fleetStore.total > 0} byFilter={fleetStore.hasActiveFilter} />
 	{:else}
 		<Accordion>
 			{#each fleetStore.filteredDevices as device (device.device_id)}
