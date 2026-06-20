@@ -49,6 +49,9 @@ class DeviceView(BaseModel):
     gpu_utilization: float = Field(ge=0.0)
     health: FleetHealth
     chromium_running: bool | None = None
+    # Canned demo device (EAI_FLEET_DEMO_MODE). Real Prometheus-derived devices are always False;
+    # the frontend's per-browser toggle shows/hides the demo=True rows (frontend calls the shots).
+    demo: bool = False
 
 
 class FleetView(BaseModel):

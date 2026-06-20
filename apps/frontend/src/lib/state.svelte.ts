@@ -8,6 +8,8 @@
 
 import { listDevices, type DeviceView } from '$lib/generated/fleet-backend-api';
 import { getErrorMessage } from '$lib/errors';
+import { applyDemoFilter, isDemoDevice } from '$lib/demo';
+import { preferences } from '$lib/preferences.svelte';
 import type { HealthFilter, SortKey } from '$lib/models';
 
 export const POLL_MS = 5000;
@@ -30,6 +32,10 @@ class FleetStore {
 	sortBy = $state<SortKey>('name');
 
 	offline = $derived(this.total - this.online);
+
+	/** A search query or health filter is active — distinguishes "filtered to empty" from
+	 * "all devices are demo-hidden" so the empty state shows the right message. */
+	hasActiveFilter = $derived(this.searchQuery.trim() !== '' || this.healthFilter !== 'all');
 
 	filteredDevices = $derived(this._applyFilterAndSort(this.devices));
 	filteredTotal = $derived(this.filteredDevices.length);
@@ -63,7 +69,9 @@ class FleetStore {
 
 	private _applyFilterAndSort(devices: DeviceView[]): DeviceView[] {
 		const query = this.searchQuery.trim().toLowerCase();
-		let result = devices;
+		// Demo mode (frontend calls the shots): hide backend-marked demo=True devices when the
+		// operator's per-browser toggle is off. Reactive on preferences.demoMode.
+		let result = applyDemoFilter(devices, isDemoDevice, preferences.demoMode);
 
 		if (query) {
 			result = result.filter(

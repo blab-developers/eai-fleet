@@ -15,6 +15,7 @@ import httpx2
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.config import settings
+from app.demo import with_demo_when_empty
 from app.k8s import K8sClient, KubernetesUnavailable
 from app.model_deploy import ModelDeployer
 from app.models import (
@@ -64,9 +65,14 @@ def _assert_device_exists(device_id: str, prometheus: PrometheusClient) -> None:
 
 @router.get("/devices", response_model=FleetView)
 def list_devices(prometheus: PrometheusDep) -> FleetView:
-    """The whole fleet, derived from node status + inference telemetry."""
+    """The whole fleet, derived from node status + inference telemetry.
+
+    When ``EAI_FLEET_DEMO_MODE`` is set AND the real derived fleet is empty, canned demo devices
+    are injected (each ``demo=True``); the frontend's per-browser toggle shows/hides them
+    (frontend calls the shots). In production (demo off) this is a pure derived view.
+    """
     try:
-        return build_fleet_view(prometheus)
+        return with_demo_when_empty(build_fleet_view(prometheus), settings.demo_mode)
     except PrometheusUnavailable as e:
         # The view is never on the data path; if central is down we can't derive it.
         raise HTTPException(status_code=502, detail=str(e)) from e

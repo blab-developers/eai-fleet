@@ -35,6 +35,10 @@ export type DeviceView = {
      * Chromium Running
      */
     chromium_running?: boolean | null;
+    /**
+     * Demo
+     */
+    demo?: boolean;
 };
 
 /**

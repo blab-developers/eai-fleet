@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     port: int = 8088
     log_level: str = "INFO"
 
+    # Demo mode (EAI_FLEET_DEMO_MODE): when true AND the real derived fleet is empty, GET /devices
+    # injects canned demo devices (marked demo=True). Off in production. The frontend's per-browser
+    # toggle decides whether to SHOW them — "frontend calls the shots" (ADR-006); the device rows
+    # are inert/view-only, so client-side hide/show is safe (unlike nano's recordable patient).
+    demo_mode: bool = False
+
     # --- Model package deployment ---
     # eai-catalog is the source of truth; fleet caches packages using the shared
     # eai-core cache root before pushing them to nano backends.

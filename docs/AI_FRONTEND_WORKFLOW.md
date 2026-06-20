@@ -69,9 +69,13 @@ A typical interactive session looks like this:
 9. **Agent runs the automated checks**:
    ```bash
    yarn check           # svelte-check + TypeScript
-   yarn test:unit       # Vitest
+   yarn test:logic      # Vitest — pure-logic tests in node (*.test.ts)
+   yarn test:components # Vitest — component tests in REAL Chromium (*.svelte.test.ts)
+   yarn test:unit       # both of the above (logic then components)
    yarn test:e2e        # Playwright (builds + runs E2E)
    ```
+   The three test tiers are the 2026 Svelte stack — see [`apps/frontend/tests/README.md`](../apps/frontend/tests/README.md)
+   and eai-nano ADR-013.
 
 ## Minimal mock backend for UI-only work
 
@@ -153,9 +157,9 @@ above them.
 
 | Situation | Best approach |
 |-----------|---------------|
-| Pure logic change (store, error handling) | Edit code + run `yarn test:unit` |
-| Layout / styling / Carbon component behavior | Edit code + browser verification |
-| New user interaction (click flows, forms) | Edit code + browser verification + Playwright test |
+| Pure logic change (store, error handling) | Edit logic into `$lib`, add a `*.test.ts`, run `yarn test:logic` |
+| Carbon component behavior (rendered title/state, derived copy) | Add a `*.svelte.test.ts` (real Chromium), run `yarn test:components` |
+| New user interaction (click flows, forms) | `*.svelte.test.ts` for the component-local interaction + Playwright for the full flow |
 | Debugging an error that only appears in browser | Use MCP console/network inspection |
 | Accessibility / responsive layout issues | Use MCP screenshots + Lighthouse |
 

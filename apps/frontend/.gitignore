@@ -11,3 +11,5 @@ vite.config.ts.timestamp-*
 /test-results/
 /playwright-report/
 /playwright/.cache/
+# vitest browser-mode scratch (screenshots/attachments) — CACHE_DIR convention, see vitest.config.ts
+/.cache

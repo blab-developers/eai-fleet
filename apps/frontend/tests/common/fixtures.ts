@@ -7,6 +7,15 @@ export const sampleDevices: DeviceView[] = [
   { device_id: 'jetson-02', name: 'jetson-02', state: 'stopped', fps: 0, gpu_utilization: 0, health: 'offline', chromium_running: null },
 ];
 
+// Backend-injected demo devices (each marked demo=true) — used to exercise the
+// frontend show/hide toggle. Mirrors what `GET /devices` returns when the real
+// derived fleet is empty and EAI_FLEET_DEMO_MODE is on.
+export const demoDevices: DeviceView[] = [
+  { device_id: 'demo-00', name: 'demo-00', state: 'running', fps: 30, gpu_utilization: 60, health: 'online', chromium_running: true, demo: true },
+  { device_id: 'demo-01', name: 'demo-01', state: 'stopped', fps: 0, gpu_utilization: 0, health: 'online', chromium_running: false, demo: true },
+  { device_id: 'demo-02', name: 'demo-02', state: 'stopped', fps: 0, gpu_utilization: 0, health: 'offline', chromium_running: null, demo: true },
+];
+
 export function fleetView(devices: DeviceView[]): FleetView {
   return {
     devices,

@@ -19,6 +19,27 @@ This file extends the canonical **[EAI Standards](../eai-nano/apps/backend/eai-c
   This is required because fleet-mgr deploys as a Docker container pair on
   eai-infra, not behind a shared ingress (unlike eai-nano which uses nginx).
 
+## Demo mode — backend injects, frontend shows/hides (frontend calls the shots)
+
+Demo mode lets the dashboard show canned devices when there are no real ones (sales/lab,
+empty fleet). The split:
+- **Backend (EXISTS):** `EAI_FLEET_DEMO_MODE` (a `Settings.demo_mode` bool, off in prod). When
+  true AND the real derived fleet is empty, `GET /devices` injects canned `DeviceView`s — each
+  marked **`demo=True`** (`app/demo.py` → `with_demo_when_empty`). Real Prometheus-derived
+  devices are always `demo=False`. No demo data ever exists when the env is off.
+- **Frontend (SHOWN):** a per-browser `demoMode` preference + a Settings toggle. The fleet store
+  hides `demo=True` rows when the toggle is off (`applyDemoFilter` in `state.svelte.ts`). The
+  frontend **does** filter here — *"frontend calls the shots"* (ADR-006).
+
+**Why fleet filters on the client but eai-nano does NOT** (the cross-repo rule — do not "fix"
+fleet to match nano, or vice-versa): nano's demo datum is an **actionable** clinical patient — a
+hidden-but-present fake patient is still *recordable*, which is unsafe, so nano controls real
+**existence** (create/delete via the normal patient API) and never client-filters. Fleet's demo
+data is **inert, view-only** device rows (the fleet view is read-only/derived — nothing acts on a
+row), so a client show/hide toggle is safe and correct. **Rule: client-side show/hide is fine for
+inert view-data (fleet); actionable/stateful demo data controls real existence with no frontend
+filter (nano).**
+
 ## Strong typing
 
 - Same as EAI Universal: Pydantic strict (`extra="forbid"`), `StrEnum`, `pathlib.Path`.
