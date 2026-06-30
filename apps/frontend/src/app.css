@@ -24,7 +24,11 @@
 	color: var(--cds-text-primary, #f4f4f4);
 	border-bottom: 2px solid var(--cds-border-interactive, #4589ff);
 }
-.settings-action {
+/* Compound selector (`.bx--header__action.settings-action`) so these layout rules
+   outrank Carbon's single-class `.bx--header__action { width: 3rem }` from g90.css,
+   which is imported AFTER app.css. Without the higher specificity the anchor stays
+   locked at 48px and the "Settings" label overflows off the right of the header. */
+.bx--header__action.settings-action {
 	display: inline-flex;
 	align-items: center;
 	gap: 0.5rem;
