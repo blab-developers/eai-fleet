@@ -1,4 +1,4 @@
 [submodule "apps/backend/eai-core"]
 	path = apps/backend/eai-core
-	url = https://gitlab.ochsner.org/eai-developers/platform/eai-core.git
+	url = git@github.com:blab-developers/eai-core.git
 	branch = main
