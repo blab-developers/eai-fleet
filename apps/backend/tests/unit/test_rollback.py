@@ -36,6 +36,7 @@ _DEVICE = "orin-01"
 
 # --- a stateful nano shared by the route-level tests -----------------------------------
 
+
 class _Nano:
     """Remembers the model_id it last installed (its 'running version')."""
 
@@ -107,6 +108,7 @@ def _deploy(client, mv: str):
 
 # --- rollback = re-deploy a prior version ----------------------------------------------
 
+
 def test_redeploy_prior_version_rolls_back(client, fake_prom) -> None:
     fake_prom.ready = {_DEVICE: 1.0}
 
@@ -125,6 +127,7 @@ def test_redeploy_prior_version_rolls_back(client, fake_prom) -> None:
 
 
 # --- a failed/interrupted update keeps the last good version ----------------------------
+
 
 def test_failed_download_keeps_last_good_version(client, fake_prom) -> None:
     fake_prom.ready = {_DEVICE: 1.0}
@@ -161,14 +164,20 @@ def test_unknown_device_deploy_does_not_touch_nano(client, fake_prom) -> None:
 
 # --- deployer-level integration: the REAL multipart push against an in-process nano -----
 
+
 def _package_on_disk(tmp_path: Path, model_id: str, onnx: bytes) -> CachedModelPackage:
     import hashlib
 
     digest = hashlib.sha256(onnx).hexdigest()
     manifest = {
-        "model_version_id": model_id, "model_id": model_id, "name": "YOLOv12 MT",
-        "git_sha": None, "weights_hash": digest, "artifact_filename": "model.onnx",
-        "nvinfer_config_filename": None, "shards": [],
+        "model_version_id": model_id,
+        "model_id": model_id,
+        "name": "YOLOv12 MT",
+        "git_sha": None,
+        "weights_hash": digest,
+        "artifact_filename": "model.onnx",
+        "nvinfer_config_filename": None,
+        "shards": [],
     }
     pkg = tmp_path / f"{model_id}.zip"
     buf = io.BytesIO()
@@ -202,10 +211,14 @@ def test_push_rollback_sequence_updates_then_restores(tmp_path: Path, monkeypatc
             manifest = json.loads(zf.read("manifest.json"))
         nano["active"] = manifest["model_id"]  # the nano installs what fleet uploaded
         nano["history"].append(manifest["model_id"])
-        return _HttpResponse({
-            "model_id": manifest["model_id"], "weights_hash": manifest["weights_hash"],
-            "artifact_filename": manifest["artifact_filename"], "nvinfer_config_filename": None,
-        })
+        return _HttpResponse(
+            {
+                "model_id": manifest["model_id"],
+                "weights_hash": manifest["weights_hash"],
+                "artifact_filename": manifest["artifact_filename"],
+                "nvinfer_config_filename": None,
+            }
+        )
 
     monkeypatch.setattr(model_deploy.httpx2, "put", fake_put)
     deployer = ModelDeployer(catalog_url="http://c/api/v1", cache_dir=tmp_path)
@@ -238,10 +251,9 @@ def test_push_failure_leaves_nano_on_prior_version(tmp_path: Path, monkeypatch) 
 
 # --- the inference-image deploy path rolls back the same way ----------------------------
 
+
 def _set_image(client, image: str):
-    return client.post(
-        f"/api/fleet/devices/{_DEVICE}/inference/image", json={"image": image}
-    )
+    return client.post(f"/api/fleet/devices/{_DEVICE}/inference/image", json={"image": image})
 
 
 def test_image_rollback_repatches_prior_tag(client, fake_prom, fake_k8s) -> None:

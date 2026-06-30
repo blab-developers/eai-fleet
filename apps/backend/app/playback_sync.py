@@ -89,8 +89,7 @@ class SidecarOverlayIndex:
     def at(self, pts_ns: int) -> list[Detection]:
         """Detections active at ``pts_ns`` (empty before the first inferred frame)."""
         while (
-            self._cursor + 1 < len(self._frames)
-            and self._frames[self._cursor + 1].pts_ns <= pts_ns
+            self._cursor + 1 < len(self._frames) and self._frames[self._cursor + 1].pts_ns <= pts_ns
         ):
             self._cursor += 1
         if not self._frames or self._frames[self._cursor].pts_ns > pts_ns:
@@ -168,7 +167,10 @@ def verify_playback_sync(
     if not frames:
         issues.append("sidecar has no frames")
         return PlaybackSyncReport(
-            ok=False, issues=issues, frame_count=0, sidecar_span_s=0.0,
+            ok=False,
+            issues=issues,
+            frame_count=0,
+            sidecar_span_s=0.0,
             video_duration_s=duration_s,
         )
 

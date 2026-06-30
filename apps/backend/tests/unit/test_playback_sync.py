@@ -25,6 +25,7 @@ _NS = 1_000_000_000
 
 # --- fixture builders -------------------------------------------------------------------
 
+
 def _box(btype: bytes, payload: bytes) -> bytes:
     return (8 + len(payload)).to_bytes(4, "big") + btype + payload
 
@@ -59,8 +60,10 @@ def _det(cat: str = "polyp") -> dict:
 
 
 def _write_sidecar(path: Path, pts_ns_list: list[int], *, dets=None) -> Path:
-    lines = [json.dumps({"pts_ns": p, "dets": dets if dets is not None else [_det()]})
-             for p in pts_ns_list]
+    lines = [
+        json.dumps({"pts_ns": p, "dets": dets if dets is not None else [_det()]})
+        for p in pts_ns_list
+    ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return path
 
@@ -78,6 +81,7 @@ def pristine(tmp_path: Path) -> tuple[Path, Path]:
 
 
 # --- mp4 duration reader ----------------------------------------------------------------
+
 
 def test_mp4_duration_reader_v0(tmp_path: Path) -> None:
     mp4 = _write_mp4(tmp_path / "a.mp4", timescale=1000, duration=20_000)
@@ -98,6 +102,7 @@ def test_mp4_duration_reader_rejects_non_mp4(tmp_path: Path) -> None:
 
 # --- the happy path ---------------------------------------------------------------------
 
+
 def test_pristine_pair_is_playback_sound(pristine: tuple[Path, Path]) -> None:
     mp4, side = pristine
     report = verify_playback_sync(mp4, side)
@@ -113,6 +118,7 @@ def test_pristine_pair_is_playback_sound(pristine: tuple[Path, Path]) -> None:
 
 
 # --- each desync mode is detected -------------------------------------------------------
+
 
 def test_non_monotonic_timestamps_detected(tmp_path: Path) -> None:
     mp4 = _write_mp4(tmp_path / "v.mp4")
@@ -203,6 +209,7 @@ def test_missing_mp4_is_reported_but_sidecar_still_checked(tmp_path: Path) -> No
 
 # --- overlay-sync join (hold-last-by-PTS) ----------------------------------------------
 
+
 def test_overlay_index_holds_last_detection_between_inferences() -> None:
     frames = [
         SidecarFrame(pts_ns=0, dets=[]),
@@ -214,10 +221,10 @@ def test_overlay_index_holds_last_detection_between_inferences() -> None:
     idx = SidecarOverlayIndex(frames)
     # Querying forward in time advances the cursor and holds the last frame between points.
     assert idx.at(0) is frames[0].dets
-    assert idx.at(int(0.5 * _NS)) is frames[0].dets        # held until next inference
+    assert idx.at(int(0.5 * _NS)) is frames[0].dets  # held until next inference
     assert idx.at(1 * _NS) is frames[1].dets
-    assert idx.at(int(1.9 * _NS)) is frames[1].dets        # held
-    assert idx.at(5 * _NS) is frames[2].dets               # past the last → last held
+    assert idx.at(int(1.9 * _NS)) is frames[1].dets  # held
+    assert idx.at(5 * _NS) is frames[2].dets  # past the last → last held
 
 
 def test_overlay_index_empty_before_first_inference() -> None:
