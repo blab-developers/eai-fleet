@@ -2,8 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { listDevices } from '$lib/generated/fleet-backend-api';
 import { fleetStore } from '$lib/state.svelte';
 
-// Mock the generated SDK call so the store is tested without a real backend/fetch.
-vi.mock('$lib/generated/fleet-backend-api', () => ({ listDevices: vi.fn() }));
+// Mock the generated SDK calls so the store is tested without a real backend/fetch.
+// getInferenceImage is imported by the store (running-version load); stub it so the
+// module resolves even though these tests only exercise loadFleet/filtering.
+vi.mock('$lib/generated/fleet-backend-api', () => ({
+	listDevices: vi.fn(),
+	getInferenceImage: vi.fn().mockResolvedValue({ data: undefined, error: undefined }),
+}));
 const mockList = vi.mocked(listDevices);
 
 type ListResult = Awaited<ReturnType<typeof listDevices>>;

@@ -2,6 +2,7 @@
 	import { Accordion } from 'carbon-components-svelte';
 	import { fleetStore } from '$lib/state.svelte';
 	import FleetSummary from '$lib/components/FleetSummary.svelte';
+	import RunningImage from '$lib/components/RunningImage.svelte';
 	import FleetToolbar from '$lib/components/FleetToolbar.svelte';
 	import DeviceAccordionItem from '$lib/components/DeviceAccordionItem.svelte';
 	import EmptyState from '$lib/components/EmptyState.svelte';
@@ -21,6 +22,10 @@
 		online={fleetStore.filteredOnline}
 		offline={fleetStore.filteredOffline}
 	/>
+
+	<div class="running-image-wrapper">
+		<RunningImage />
+	</div>
 
 	{#if fleetStore.total > 0}
 		<div class="toolbar-wrapper">
@@ -47,5 +52,8 @@
 	}
 	.toolbar-wrapper {
 		margin-bottom: var(--bx-spacing-06);
+	}
+	.running-image-wrapper {
+		margin: 0 0 var(--bx-spacing-06);
 	}
 </style>

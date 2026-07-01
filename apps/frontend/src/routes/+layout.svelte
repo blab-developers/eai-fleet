@@ -15,7 +15,11 @@
 
 	onMount(() => {
 		fleetStore.loadFleet();
-		timer = setInterval(() => fleetStore.loadFleet(), POLL_MS);
+		fleetStore.loadInferenceImage();
+		timer = setInterval(() => {
+			fleetStore.loadFleet();
+			fleetStore.loadInferenceImage();
+		}, POLL_MS);
 	});
 
 	onDestroy(() => {

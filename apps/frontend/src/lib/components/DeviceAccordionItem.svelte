@@ -4,6 +4,7 @@
 	import { env } from '$env/dynamic/public';
 	import type { DeviceView } from '$lib/generated/fleet-backend-api';
 	import SetImageForm from './SetImageForm.svelte';
+	import DeviceInferenceActions from './DeviceInferenceActions.svelte';
 
 	interface Props {
 		device: DeviceView;
@@ -82,6 +83,7 @@
 		</ButtonSet>
 
 		<SetImageForm deviceId={device.device_id} />
+		<DeviceInferenceActions deviceId={device.device_id} />
 	</div>
 </AccordionItem>
 

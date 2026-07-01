@@ -6,7 +6,7 @@
  * Components import this singleton and re-derive from it.
  */
 
-import { listDevices, type DeviceView } from '$lib/generated/fleet-backend-api';
+import { listDevices, getInferenceImage, type DeviceView } from '$lib/generated/fleet-backend-api';
 import { getErrorMessage } from '$lib/errors';
 import { applyDemoFilter, isDemoDevice } from '$lib/demo';
 import { preferences } from '$lib/preferences.svelte';
@@ -25,6 +25,12 @@ class FleetStore {
 	loaded = $state(false);
 	/** Timestamp of the last successful load. */
 	lastUpdated = $state<Date | null>(null);
+
+	/** The image the inference DaemonSet is currently running (fleet-wide, v1). Read live
+	 * from k8s via a SEPARATE endpoint so the derived device poll stays k8s-free — null when
+	 * the cluster read is unavailable (e.g. dev/demo with no k8s), which the UI shows as "—". */
+	inferenceImage = $state<string | null>(null);
+	inferenceImageError = $state<string | null>(null);
 
 	/** User-controlled filter/search/sort state. */
 	searchQuery = $state('');
@@ -65,6 +71,25 @@ class FleetStore {
 
 	retry(): Promise<void> {
 		return this.loadFleet();
+	}
+
+	/** Refresh the fleet-wide running inference image. Best-effort: a k8s-unavailable read
+	 * (502) leaves the image null and records the reason, rather than surfacing a red banner —
+	 * the running-version display just shows "—". Call after a rollback/set-image to reflect it. */
+	async loadInferenceImage(): Promise<void> {
+		try {
+			const { data, error } = await getInferenceImage();
+			if (data) {
+				this.inferenceImage = data.image;
+				this.inferenceImageError = null;
+			} else {
+				this.inferenceImage = null;
+				this.inferenceImageError = getErrorMessage(error);
+			}
+		} catch (e) {
+			this.inferenceImage = null;
+			this.inferenceImageError = getErrorMessage(e);
+		}
 	}
 
 	private _applyFilterAndSort(devices: DeviceView[]): DeviceView[] {

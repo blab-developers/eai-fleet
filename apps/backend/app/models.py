@@ -95,6 +95,59 @@ class InferenceImageResponse(BaseModel):
     note: str
 
 
+class InferenceImageInfo(BaseModel):
+    """Current image of the inference DaemonSet, read from k8s (``GET /inference/image``).
+
+    Fleet-wide in v1 — the inference workload is a single DaemonSet, so this is the
+    one image every Nano runs. Reads live from the cluster (the fleet keeps no state);
+    it is a separate endpoint from the derived ``GET /devices`` so the read path stays
+    k8s-free.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    image: str
+    namespace: str
+    daemonset: str
+    container: str
+    scope: ImageSetScope
+
+
+class InferenceRestartResponse(BaseModel):
+    """Response from ``POST /devices/{id}/inference/restart``.
+
+    Restart == ``kubectl rollout restart`` on the inference DaemonSet (a
+    ``restartedAt`` template annotation), so v1 is fleet-wide like set-image.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    device_id: str
+    namespace: str
+    daemonset: str
+    scope: ImageSetScope
+    note: str
+
+
+class InferenceRollbackResponse(BaseModel):
+    """Response from ``POST /devices/{id}/inference/rollback``.
+
+    First-class rollback: re-patches the DaemonSet to the image of its immediately
+    previous revision (read from the cluster's ControllerRevision history), turning
+    the old implicit "re-deploy the prior tag" into a real verb. ``image`` is the tag
+    it was rolled back to.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    device_id: str
+    image: str
+    namespace: str
+    daemonset: str
+    scope: ImageSetScope
+    note: str
+
+
 class ModelDeployRequest(BaseModel):
     """POST body for deploying a catalog model package to one nano backend."""
 

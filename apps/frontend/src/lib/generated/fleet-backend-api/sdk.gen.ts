@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeployModelPackageData, DeployModelPackageErrors, DeployModelPackageResponses, ListDevicesData, ListDevicesResponses, LiveData, LiveResponses, PullRecordingsData, PullRecordingsErrors, PullRecordingsResponses, ReadyData, ReadyResponses, SetInferenceImageData, SetInferenceImageErrors, SetInferenceImageResponses } from './types.gen';
+import type { DeployModelPackageData, DeployModelPackageErrors, DeployModelPackageResponses, GetInferenceImageData, GetInferenceImageResponses, ListDevicesData, ListDevicesResponses, LiveData, LiveResponses, PullRecordingsData, PullRecordingsErrors, PullRecordingsResponses, ReadyData, ReadyResponses, RestartInferenceData, RestartInferenceErrors, RestartInferenceResponses, RollbackInferenceData, RollbackInferenceErrors, RollbackInferenceResponses, SetInferenceImageData, SetInferenceImageErrors, SetInferenceImageResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -66,6 +66,45 @@ export const setInferenceImage = <ThrowOnError extends boolean = false>(options:
         ...options.headers
     }
 });
+
+/**
+ * Get Inference Image
+ *
+ * The image the inference DaemonSet is currently running (the fleet's running version).
+ *
+ * Read live from k8s (the fleet keeps no state). Fleet-wide in v1 — one DaemonSet,
+ * one image. Kept off the derived ``GET /devices`` path so that read stays k8s-free.
+ *
+ * Errors: 502 — the k8s GET failed (API unreachable, DaemonSet missing).
+ */
+export const getInferenceImage = <ThrowOnError extends boolean = false>(options?: Options<GetInferenceImageData, ThrowOnError>): RequestResult<GetInferenceImageResponses, unknown, ThrowOnError> => (options?.client ?? client).get<GetInferenceImageResponses, unknown, ThrowOnError>({ url: '/api/fleet/inference/image', ...options });
+
+/**
+ * Restart Inference
+ *
+ * Roll the inference pods (``kubectl rollout restart`` on the DaemonSet).
+ *
+ * v1 fleet-wide behind a per-device shape, same as set-image: the restart hits every
+ * Nano the DaemonSet runs on. ``device_id`` is validated so a typo can't trigger a
+ * fleet-wide restart from the wrong row.
+ *
+ * Errors: 404 — ``device_id`` not in the fleet view; 502 — Prometheus (device check)
+ * or the k8s PATCH failed.
+ */
+export const restartInference = <ThrowOnError extends boolean = false>(options: Options<RestartInferenceData, ThrowOnError>): RequestResult<RestartInferenceResponses, RestartInferenceErrors, ThrowOnError> => (options.client ?? client).post<RestartInferenceResponses, RestartInferenceErrors, ThrowOnError>({ url: '/api/fleet/devices/{device_id}/inference/restart', ...options });
+
+/**
+ * Rollback Inference
+ *
+ * Roll the inference image back to the DaemonSet's immediately previous revision.
+ *
+ * First-class rollback: reads the cluster's ControllerRevision history to find the
+ * prior image, then re-patches the DaemonSet to it. v1 fleet-wide like set-image.
+ *
+ * Errors: 404 — ``device_id`` not in the fleet view; 502 — Prometheus (device check),
+ * no prior revision to roll back to, or the k8s read/PATCH failed.
+ */
+export const rollbackInference = <ThrowOnError extends boolean = false>(options: Options<RollbackInferenceData, ThrowOnError>): RequestResult<RollbackInferenceResponses, RollbackInferenceErrors, ThrowOnError> => (options.client ?? client).post<RollbackInferenceResponses, RollbackInferenceErrors, ThrowOnError>({ url: '/api/fleet/devices/{device_id}/inference/rollback', ...options });
 
 /**
  * Deploy Model Package

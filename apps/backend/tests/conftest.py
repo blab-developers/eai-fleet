@@ -37,12 +37,18 @@ class FakePrometheus:
 
 
 class FakeK8s:
-    """Stands in for ``K8sClient`` — records the patch it would have made."""
+    """Stands in for ``K8sClient`` — records mutations, returns canned reads."""
 
     def __init__(self) -> None:
         # (namespace, name, container, image) tuples in call order.
         self.patches: list[tuple[str, str, str, str]] = []
+        # (namespace, name) tuples for each restart, in call order.
+        self.restarts: list[tuple[str, str]] = []
         self.fail: KubernetesUnavailable | None = None
+        # Canned reads for the running-image + rollback paths.
+        self.current_image: str = "registry.endoscopeai.com/eai-nano/inference:v2"
+        # None ⇒ no prior revision (rollback then surfaces a 502, like the real client).
+        self.previous_image: str | None = "registry.endoscopeai.com/eai-nano/inference:v1"
 
     def patch_daemonset_image(
         self,
@@ -54,6 +60,25 @@ class FakeK8s:
         if self.fail is not None:
             raise self.fail
         self.patches.append((namespace, name, container, image))
+
+    def get_daemonset_image(self, namespace: str, name: str, container: str) -> str:
+        if self.fail is not None:
+            raise self.fail
+        return self.current_image
+
+    def restart_daemonset(self, namespace: str, name: str) -> None:
+        if self.fail is not None:
+            raise self.fail
+        self.restarts.append((namespace, name))
+
+    def previous_daemonset_image(self, namespace: str, name: str, container: str) -> str:
+        if self.fail is not None:
+            raise self.fail
+        if self.previous_image is None:
+            raise KubernetesUnavailable(
+                f"no prior revision of DaemonSet {namespace}/{name} to roll back to"
+            )
+        return self.previous_image
 
 
 @pytest.fixture

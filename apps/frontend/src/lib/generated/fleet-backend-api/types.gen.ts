@@ -95,6 +95,36 @@ export type HealthStatus = 'alive' | 'ready' | 'not_ready';
 export type ImageSetScope = 'fleet-wide' | 'device';
 
 /**
+ * InferenceImageInfo
+ *
+ * Current image of the inference DaemonSet, read from k8s (``GET /inference/image``).
+ *
+ * Fleet-wide in v1 — the inference workload is a single DaemonSet, so this is the
+ * one image every Nano runs. Reads live from the cluster (the fleet keeps no state);
+ * it is a separate endpoint from the derived ``GET /devices`` so the read path stays
+ * k8s-free.
+ */
+export type InferenceImageInfo = {
+    /**
+     * Image
+     */
+    image: string;
+    /**
+     * Namespace
+     */
+    namespace: string;
+    /**
+     * Daemonset
+     */
+    daemonset: string;
+    /**
+     * Container
+     */
+    container: string;
+    scope: ImageSetScope;
+};
+
+/**
  * InferenceImageRequest
  *
  * POST body for setting the inference image on a device.
@@ -122,6 +152,68 @@ export type InferenceImageResponse = {
      * Image
      */
     image: string;
+    scope: ImageSetScope;
+    /**
+     * Note
+     */
+    note: string;
+};
+
+/**
+ * InferenceRestartResponse
+ *
+ * Response from ``POST /devices/{id}/inference/restart``.
+ *
+ * Restart == ``kubectl rollout restart`` on the inference DaemonSet (a
+ * ``restartedAt`` template annotation), so v1 is fleet-wide like set-image.
+ */
+export type InferenceRestartResponse = {
+    /**
+     * Device Id
+     */
+    device_id: string;
+    /**
+     * Namespace
+     */
+    namespace: string;
+    /**
+     * Daemonset
+     */
+    daemonset: string;
+    scope: ImageSetScope;
+    /**
+     * Note
+     */
+    note: string;
+};
+
+/**
+ * InferenceRollbackResponse
+ *
+ * Response from ``POST /devices/{id}/inference/rollback``.
+ *
+ * First-class rollback: re-patches the DaemonSet to the image of its immediately
+ * previous revision (read from the cluster's ControllerRevision history), turning
+ * the old implicit "re-deploy the prior tag" into a real verb. ``image`` is the tag
+ * it was rolled back to.
+ */
+export type InferenceRollbackResponse = {
+    /**
+     * Device Id
+     */
+    device_id: string;
+    /**
+     * Image
+     */
+    image: string;
+    /**
+     * Namespace
+     */
+    namespace: string;
+    /**
+     * Daemonset
+     */
+    daemonset: string;
     scope: ImageSetScope;
     /**
      * Note
@@ -380,6 +472,82 @@ export type SetInferenceImageResponses = {
 };
 
 export type SetInferenceImageResponse = SetInferenceImageResponses[keyof SetInferenceImageResponses];
+
+export type GetInferenceImageData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/fleet/inference/image';
+};
+
+export type GetInferenceImageResponses = {
+    /**
+     * Successful Response
+     */
+    200: InferenceImageInfo;
+};
+
+export type GetInferenceImageResponse = GetInferenceImageResponses[keyof GetInferenceImageResponses];
+
+export type RestartInferenceData = {
+    body?: never;
+    path: {
+        /**
+         * Device Id
+         */
+        device_id: string;
+    };
+    query?: never;
+    url: '/api/fleet/devices/{device_id}/inference/restart';
+};
+
+export type RestartInferenceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RestartInferenceError = RestartInferenceErrors[keyof RestartInferenceErrors];
+
+export type RestartInferenceResponses = {
+    /**
+     * Successful Response
+     */
+    200: InferenceRestartResponse;
+};
+
+export type RestartInferenceResponse = RestartInferenceResponses[keyof RestartInferenceResponses];
+
+export type RollbackInferenceData = {
+    body?: never;
+    path: {
+        /**
+         * Device Id
+         */
+        device_id: string;
+    };
+    query?: never;
+    url: '/api/fleet/devices/{device_id}/inference/rollback';
+};
+
+export type RollbackInferenceErrors = {
+    /**
+     * Validation Error
+     */
+    422: HttpValidationError;
+};
+
+export type RollbackInferenceError = RollbackInferenceErrors[keyof RollbackInferenceErrors];
+
+export type RollbackInferenceResponses = {
+    /**
+     * Successful Response
+     */
+    200: InferenceRollbackResponse;
+};
+
+export type RollbackInferenceResponse = RollbackInferenceResponses[keyof RollbackInferenceResponses];
 
 export type DeployModelPackageData = {
     body: ModelDeployRequest;

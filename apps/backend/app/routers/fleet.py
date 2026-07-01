@@ -21,8 +21,11 @@ from app.model_deploy import ModelDeployer
 from app.models import (
     FleetView,
     ImageSetScope,
+    InferenceImageInfo,
     InferenceImageRequest,
     InferenceImageResponse,
+    InferenceRestartResponse,
+    InferenceRollbackResponse,
     ModelDeployRequest,
     ModelDeployResponse,
     RecordingsPullRequest,
@@ -125,6 +128,117 @@ def set_inference_image(
             f"{settings.inference_daemonset} patched. Today this updates every "
             "Nano in the fleet (Spec 008 demo scope); true per-device targeting "
             "lands with the per-Nano overlay."
+        ),
+    )
+
+
+@router.get("/inference/image", response_model=InferenceImageInfo)
+def get_inference_image(k8s: K8sDep) -> InferenceImageInfo:
+    """The image the inference DaemonSet is currently running (the fleet's running version).
+
+    Read live from k8s (the fleet keeps no state). Fleet-wide in v1 — one DaemonSet,
+    one image. Kept off the derived ``GET /devices`` path so that read stays k8s-free.
+
+    Errors: 502 — the k8s GET failed (API unreachable, DaemonSet missing).
+    """
+    try:
+        image = k8s.get_daemonset_image(
+            namespace=settings.inference_namespace,
+            name=settings.inference_daemonset,
+            container=settings.inference_container,
+        )
+    except KubernetesUnavailable as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+    return InferenceImageInfo(
+        image=image,
+        namespace=settings.inference_namespace,
+        daemonset=settings.inference_daemonset,
+        container=settings.inference_container,
+        scope=ImageSetScope.FLEET_WIDE,
+    )
+
+
+@router.post(
+    "/devices/{device_id}/inference/restart",
+    response_model=InferenceRestartResponse,
+)
+def restart_inference(
+    device_id: str,
+    prometheus: PrometheusDep,
+    k8s: K8sDep,
+) -> InferenceRestartResponse:
+    """Roll the inference pods (``kubectl rollout restart`` on the DaemonSet).
+
+    v1 fleet-wide behind a per-device shape, same as set-image: the restart hits every
+    Nano the DaemonSet runs on. ``device_id`` is validated so a typo can't trigger a
+    fleet-wide restart from the wrong row.
+
+    Errors: 404 — ``device_id`` not in the fleet view; 502 — Prometheus (device check)
+    or the k8s PATCH failed.
+    """
+    _assert_device_exists(device_id, prometheus)
+    try:
+        k8s.restart_daemonset(
+            namespace=settings.inference_namespace,
+            name=settings.inference_daemonset,
+        )
+    except KubernetesUnavailable as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+    return InferenceRestartResponse(
+        device_id=device_id,
+        namespace=settings.inference_namespace,
+        daemonset=settings.inference_daemonset,
+        scope=ImageSetScope.FLEET_WIDE,
+        note=(
+            f"Inference DaemonSet {settings.inference_namespace}/"
+            f"{settings.inference_daemonset} rollout-restarted. Today this rolls every "
+            "Nano in the fleet (Spec 008 demo scope)."
+        ),
+    )
+
+
+@router.post(
+    "/devices/{device_id}/inference/rollback",
+    response_model=InferenceRollbackResponse,
+)
+def rollback_inference(
+    device_id: str,
+    prometheus: PrometheusDep,
+    k8s: K8sDep,
+) -> InferenceRollbackResponse:
+    """Roll the inference image back to the DaemonSet's immediately previous revision.
+
+    First-class rollback: reads the cluster's ControllerRevision history to find the
+    prior image, then re-patches the DaemonSet to it. v1 fleet-wide like set-image.
+
+    Errors: 404 — ``device_id`` not in the fleet view; 502 — Prometheus (device check),
+    no prior revision to roll back to, or the k8s read/PATCH failed.
+    """
+    _assert_device_exists(device_id, prometheus)
+    try:
+        image = k8s.previous_daemonset_image(
+            namespace=settings.inference_namespace,
+            name=settings.inference_daemonset,
+            container=settings.inference_container,
+        )
+        k8s.patch_daemonset_image(
+            namespace=settings.inference_namespace,
+            name=settings.inference_daemonset,
+            container=settings.inference_container,
+            image=image,
+        )
+    except KubernetesUnavailable as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
+    return InferenceRollbackResponse(
+        device_id=device_id,
+        image=image,
+        namespace=settings.inference_namespace,
+        daemonset=settings.inference_daemonset,
+        scope=ImageSetScope.FLEET_WIDE,
+        note=(
+            f"Inference DaemonSet {settings.inference_namespace}/"
+            f"{settings.inference_daemonset} rolled back to {image} (its previous "
+            "revision). Today this rolls back every Nano in the fleet (Spec 008 demo scope)."
         ),
     )
 

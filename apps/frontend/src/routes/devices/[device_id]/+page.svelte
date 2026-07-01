@@ -15,6 +15,8 @@
 	import { env } from '$env/dynamic/public';
 	import { fleetStore } from '$lib/state.svelte';
 	import SetImageForm from '$lib/components/SetImageForm.svelte';
+	import RunningImage from '$lib/components/RunningImage.svelte';
+	import DeviceInferenceActions from '$lib/components/DeviceInferenceActions.svelte';
 
 	const grafanaBase = env.EAI_FLEET_FRONTEND_GRAFANA_URL ?? '';
 	const deviceId = $derived(page.params.device_id);
@@ -95,8 +97,15 @@
 		{/if}
 	</ButtonSet>
 
+	<div class="running-image-detail">
+		<RunningImage />
+	</div>
+
 	<h2>Set inference image</h2>
 	<SetImageForm deviceId={device.device_id} />
+
+	<h2>Operations</h2>
+	<DeviceInferenceActions deviceId={device.device_id} />
 {/if}
 
 <style lang="scss">
@@ -131,5 +140,8 @@
 	}
 	.state-wrapper {
 		padding: var(--bx-spacing-09) 0;
+	}
+	.running-image-detail {
+		margin: var(--bx-spacing-05) 0 0;
 	}
 </style>
