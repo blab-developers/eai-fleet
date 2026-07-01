@@ -39,6 +39,42 @@
 }
 
 /* ---------------------------------------------------------------------------
+   Incomplete-theme TOKEN backfill (same prerelease gap as the header + grid
+   patches). carbon-components-svelte's g90.css defines the SUFFIXED layer tokens
+   (--bx-field-01, --bx-layer-01 = #393939, …) but OMITS several BASE aliases and
+   button tokens that its OWN component CSS still references as `var(--bx-…)` with
+   no dark fallback — so those resolve to the component's inline WHITE-theme
+   default, giving white-on-white:
+     • a disabled <Button> ("Apply" before an image is typed), and
+     • a <Dropdown>'s field/menu (the selected model name).
+   Backfill the missing tokens to their g90 dark values. app.css is imported
+   BEFORE g90.css, so every token g90 DOES define still wins — these only fill
+   the genuine gaps (all confirmed undefined in g90.css).
+   --------------------------------------------------------------------------- */
+:root {
+	--bx-field: var(--bx-field-01, #393939);
+	--bx-layer: var(--bx-layer-01, #393939);
+	--bx-button-primary: #0f62fe;
+	--bx-button-primary-hover: #0353e9;
+	--bx-button-primary-active: #002d9c;
+	--bx-button-secondary: #6f6f6f;
+	--bx-button-secondary-hover: #606060;
+	--bx-button-disabled: #525252;
+	--bx-disabled-01: #393939;
+	--bx-disabled-02: #6f6f6f;
+	--bx-disabled-03: #a8a8a8;
+	--bx-border-strong: #6f6f6f;
+}
+
+/* g90.css themes components but never paints the document surface, so bare page
+   areas (and any component that falls through to it) default to white — under
+   which the theme's light text is unreadable. Paint the page the g90 background. */
+body {
+	background-color: var(--bx-background, #262626);
+	color: var(--bx-text-primary, #f4f4f4);
+}
+
+/* ---------------------------------------------------------------------------
    Carbon v11 CSS Grid backfill.
 
    carbon-components-svelte 1.0.0-next ships the Grid/Row/Column components but
