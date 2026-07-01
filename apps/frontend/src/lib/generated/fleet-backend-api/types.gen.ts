@@ -296,6 +296,47 @@ export type ModelDeployResponse = {
 };
 
 /**
+ * ModelVersionView
+ *
+ * One available model version, listed from eai-catalog (``GET /models``).
+ *
+ * A read-through projection of the catalog's ModelVersion — just the fields the fleet
+ * UI needs to populate the model selector and identify what to deploy. ``id`` is the
+ * ``model_version_id`` the deploy endpoint takes. The fleet keeps no model state; this
+ * is derived live from the catalog (the source of truth).
+ */
+export type ModelVersionView = {
+    /**
+     * Id
+     */
+    id: string;
+    /**
+     * Name
+     */
+    name: string;
+    /**
+     * Git Sha
+     */
+    git_sha?: string | null;
+    /**
+     * Jetson Device Target
+     */
+    jetson_device_target?: string | null;
+    /**
+     * Weights Hash
+     */
+    weights_hash?: string | null;
+    /**
+     * Created At
+     */
+    created_at?: string | null;
+    /**
+     * Notes
+     */
+    notes?: string | null;
+};
+
+/**
  * Readiness
  *
  * Response body: GET /health/ready — ready to receive traffic (or why not).
@@ -548,6 +589,24 @@ export type RollbackInferenceResponses = {
 };
 
 export type RollbackInferenceResponse = RollbackInferenceResponses[keyof RollbackInferenceResponses];
+
+export type ListModelsData = {
+    body?: never;
+    path?: never;
+    query?: never;
+    url: '/api/fleet/models';
+};
+
+export type ListModelsResponses = {
+    /**
+     * Response List Models
+     *
+     * Successful Response
+     */
+    200: Array<ModelVersionView>;
+};
+
+export type ListModelsResponse = ListModelsResponses[keyof ListModelsResponses];
 
 export type DeployModelPackageData = {
     body: ModelDeployRequest;

@@ -6,7 +6,13 @@
  * Components import this singleton and re-derive from it.
  */
 
-import { listDevices, getInferenceImage, type DeviceView } from '$lib/generated/fleet-backend-api';
+import {
+	listDevices,
+	getInferenceImage,
+	listModels,
+	type DeviceView,
+	type ModelVersionView,
+} from '$lib/generated/fleet-backend-api';
 import { getErrorMessage } from '$lib/errors';
 import { applyDemoFilter, isDemoDevice } from '$lib/demo';
 import { preferences } from '$lib/preferences.svelte';
@@ -31,6 +37,12 @@ class FleetStore {
 	 * the cluster read is unavailable (e.g. dev/demo with no k8s), which the UI shows as "—". */
 	inferenceImage = $state<string | null>(null);
 	inferenceImageError = $state<string | null>(null);
+
+	/** Available model versions from eai-catalog (the model-selector source). Catalog-wide,
+	 * not per-device, so it's loaded once and shared. Empty when the catalog read fails. */
+	models = $state<ModelVersionView[]>([]);
+	modelsError = $state<string | null>(null);
+	modelsLoaded = $state(false);
 
 	/** User-controlled filter/search/sort state. */
 	searchQuery = $state('');
@@ -89,6 +101,27 @@ class FleetStore {
 		} catch (e) {
 			this.inferenceImage = null;
 			this.inferenceImageError = getErrorMessage(e);
+		}
+	}
+
+	/** Load the available model versions from the catalog (via the backend). Best-effort:
+	 * a failure records the reason and leaves the list empty so the selector shows an
+	 * "unavailable" state rather than a page-level error. */
+	async loadModels(): Promise<void> {
+		try {
+			const { data, error } = await listModels();
+			if (data) {
+				this.models = data;
+				this.modelsError = null;
+			} else {
+				this.models = [];
+				this.modelsError = getErrorMessage(error);
+			}
+		} catch (e) {
+			this.models = [];
+			this.modelsError = getErrorMessage(e);
+		} finally {
+			this.modelsLoaded = true;
 		}
 	}
 

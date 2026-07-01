@@ -16,6 +16,8 @@
 	onMount(() => {
 		fleetStore.loadFleet();
 		fleetStore.loadInferenceImage();
+		// Catalog model list changes rarely — load once, not on every poll tick.
+		fleetStore.loadModels();
 		timer = setInterval(() => {
 			fleetStore.loadFleet();
 			fleetStore.loadInferenceImage();

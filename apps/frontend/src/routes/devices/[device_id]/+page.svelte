@@ -17,6 +17,7 @@
 	import SetImageForm from '$lib/components/SetImageForm.svelte';
 	import RunningImage from '$lib/components/RunningImage.svelte';
 	import DeviceInferenceActions from '$lib/components/DeviceInferenceActions.svelte';
+	import ModelDeployForm from '$lib/components/ModelDeployForm.svelte';
 
 	const grafanaBase = env.EAI_FLEET_FRONTEND_GRAFANA_URL ?? '';
 	const deviceId = $derived(page.params.device_id);
@@ -100,6 +101,9 @@
 	<div class="running-image-detail">
 		<RunningImage />
 	</div>
+
+	<h2>Deploy model</h2>
+	<ModelDeployForm deviceId={device.device_id} />
 
 	<h2>Set inference image</h2>
 	<SetImageForm deviceId={device.device_id} />

@@ -2,7 +2,7 @@
 
 import type { Client, Options as Options2, RequestResult, TDataShape } from './client';
 import { client } from './client.gen';
-import type { DeployModelPackageData, DeployModelPackageErrors, DeployModelPackageResponses, GetInferenceImageData, GetInferenceImageResponses, ListDevicesData, ListDevicesResponses, LiveData, LiveResponses, PullRecordingsData, PullRecordingsErrors, PullRecordingsResponses, ReadyData, ReadyResponses, RestartInferenceData, RestartInferenceErrors, RestartInferenceResponses, RollbackInferenceData, RollbackInferenceErrors, RollbackInferenceResponses, SetInferenceImageData, SetInferenceImageErrors, SetInferenceImageResponses } from './types.gen';
+import type { DeployModelPackageData, DeployModelPackageErrors, DeployModelPackageResponses, GetInferenceImageData, GetInferenceImageResponses, ListDevicesData, ListDevicesResponses, ListModelsData, ListModelsResponses, LiveData, LiveResponses, PullRecordingsData, PullRecordingsErrors, PullRecordingsResponses, ReadyData, ReadyResponses, RestartInferenceData, RestartInferenceErrors, RestartInferenceResponses, RollbackInferenceData, RollbackInferenceErrors, RollbackInferenceResponses, SetInferenceImageData, SetInferenceImageErrors, SetInferenceImageResponses } from './types.gen';
 
 export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends boolean = boolean, TResponse = unknown> = Options2<TData, ThrowOnError, TResponse> & {
     /**
@@ -105,6 +105,18 @@ export const restartInference = <ThrowOnError extends boolean = false>(options: 
  * no prior revision to roll back to, or the k8s read/PATCH failed.
  */
 export const rollbackInference = <ThrowOnError extends boolean = false>(options: Options<RollbackInferenceData, ThrowOnError>): RequestResult<RollbackInferenceResponses, RollbackInferenceErrors, ThrowOnError> => (options.client ?? client).post<RollbackInferenceResponses, RollbackInferenceErrors, ThrowOnError>({ url: '/api/fleet/devices/{device_id}/inference/rollback', ...options });
+
+/**
+ * List Models
+ *
+ * Available model versions from eai-catalog — the fleet UI's model selector source.
+ *
+ * Read live from the catalog (the fleet keeps no model state); ``id`` on each entry is
+ * the ``model_version_id`` the deploy route takes.
+ *
+ * Errors: 502 — the catalog query failed (unreachable / bad response).
+ */
+export const listModels = <ThrowOnError extends boolean = false>(options?: Options<ListModelsData, ThrowOnError>): RequestResult<ListModelsResponses, unknown, ThrowOnError> => (options?.client ?? client).get<ListModelsResponses, unknown, ThrowOnError>({ url: '/api/fleet/models', ...options });
 
 /**
  * Deploy Model Package

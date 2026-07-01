@@ -148,6 +148,26 @@ class InferenceRollbackResponse(BaseModel):
     note: str
 
 
+class ModelVersionView(BaseModel):
+    """One available model version, listed from eai-catalog (``GET /models``).
+
+    A read-through projection of the catalog's ModelVersion — just the fields the fleet
+    UI needs to populate the model selector and identify what to deploy. ``id`` is the
+    ``model_version_id`` the deploy endpoint takes. The fleet keeps no model state; this
+    is derived live from the catalog (the source of truth).
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    name: str
+    git_sha: str | None = None
+    jetson_device_target: str | None = None
+    weights_hash: str | None = None
+    created_at: str | None = None
+    notes: str | None = None
+
+
 class ModelDeployRequest(BaseModel):
     """POST body for deploying a catalog model package to one nano backend."""
 

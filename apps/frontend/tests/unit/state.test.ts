@@ -8,6 +8,7 @@ import { fleetStore } from '$lib/state.svelte';
 vi.mock('$lib/generated/fleet-backend-api', () => ({
 	listDevices: vi.fn(),
 	getInferenceImage: vi.fn().mockResolvedValue({ data: undefined, error: undefined }),
+	listModels: vi.fn().mockResolvedValue({ data: [], error: undefined }),
 }));
 const mockList = vi.mocked(listDevices);
 

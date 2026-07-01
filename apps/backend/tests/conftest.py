@@ -11,10 +11,12 @@ records the PATCH it would have made instead of touching a real cluster.
 import pytest
 from fastapi.testclient import TestClient
 
+from app.catalog import CatalogUnavailable
 from app.k8s import KubernetesUnavailable
 from app.main import app
+from app.models import ModelVersionView
 from app.prometheus import PrometheusUnavailable
-from app.routers.fleet import get_k8s, get_prometheus
+from app.routers.fleet import get_catalog, get_k8s, get_prometheus
 
 
 class FakePrometheus:
@@ -81,6 +83,19 @@ class FakeK8s:
         return self.previous_image
 
 
+class FakeCatalog:
+    """Stands in for ``CatalogClient`` — returns canned model versions."""
+
+    def __init__(self) -> None:
+        self.models: list[ModelVersionView] = []
+        self.fail: CatalogUnavailable | None = None
+
+    def list_models(self) -> list[ModelVersionView]:
+        if self.fail is not None:
+            raise self.fail
+        return self.models
+
+
 @pytest.fixture
 def fake_prom() -> FakePrometheus:
     """The canned Prometheus a test configures before calling the API."""
@@ -94,9 +109,16 @@ def fake_k8s() -> FakeK8s:
 
 
 @pytest.fixture
-def client(fake_prom: FakePrometheus, fake_k8s: FakeK8s):
-    """TestClient with both dependencies overridden by fakes."""
+def fake_catalog() -> FakeCatalog:
+    """The canned catalog a test configures before calling the API."""
+    return FakeCatalog()
+
+
+@pytest.fixture
+def client(fake_prom: FakePrometheus, fake_k8s: FakeK8s, fake_catalog: FakeCatalog):
+    """TestClient with the Prometheus, k8s, and catalog dependencies overridden by fakes."""
     app.dependency_overrides[get_prometheus] = lambda: fake_prom
     app.dependency_overrides[get_k8s] = lambda: fake_k8s
+    app.dependency_overrides[get_catalog] = lambda: fake_catalog
     yield TestClient(app)
     app.dependency_overrides.clear()

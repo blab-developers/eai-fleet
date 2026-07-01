@@ -14,6 +14,7 @@ from typing import Annotated
 import httpx2
 from fastapi import APIRouter, Depends, HTTPException
 
+from app.catalog import CatalogClient, CatalogUnavailable
 from app.config import settings
 from app.demo import with_demo_when_empty
 from app.k8s import K8sClient, KubernetesUnavailable
@@ -28,6 +29,7 @@ from app.models import (
     InferenceRollbackResponse,
     ModelDeployRequest,
     ModelDeployResponse,
+    ModelVersionView,
     RecordingsPullRequest,
     RecordingsPullResponse,
 )
@@ -40,6 +42,15 @@ router = APIRouter(prefix="/api/fleet", tags=["fleet"])
 def get_prometheus() -> PrometheusClient:
     """FastAPI dependency: a client for the central Prometheus."""
     return PrometheusClient(settings.prometheus_url, settings.prometheus_timeout_s)
+
+
+def get_catalog() -> CatalogClient:
+    """FastAPI dependency: a read client for the central eai-catalog."""
+    return CatalogClient(
+        settings.catalog_url,
+        settings.catalog_token,
+        settings.model_deploy_timeout_s,
+    )
 
 
 def get_k8s() -> K8sClient:
@@ -55,6 +66,7 @@ def get_k8s() -> K8sClient:
 
 PrometheusDep = Annotated[PrometheusClient, Depends(get_prometheus)]
 K8sDep = Annotated[K8sClient, Depends(get_k8s)]
+CatalogDep = Annotated[CatalogClient, Depends(get_catalog)]
 
 
 def _assert_device_exists(device_id: str, prometheus: PrometheusClient) -> None:
@@ -241,6 +253,21 @@ def rollback_inference(
             "revision). Today this rolls back every Nano in the fleet (Spec 008 demo scope)."
         ),
     )
+
+
+@router.get("/models", response_model=list[ModelVersionView])
+def list_models(catalog: CatalogDep) -> list[ModelVersionView]:
+    """Available model versions from eai-catalog — the fleet UI's model selector source.
+
+    Read live from the catalog (the fleet keeps no model state); ``id`` on each entry is
+    the ``model_version_id`` the deploy route takes.
+
+    Errors: 502 — the catalog query failed (unreachable / bad response).
+    """
+    try:
+        return catalog.list_models()
+    except CatalogUnavailable as e:
+        raise HTTPException(status_code=502, detail=str(e)) from e
 
 
 @router.post(
