@@ -93,7 +93,7 @@ def test_deploy_happy_path(client, fake_prom, patched_deployer) -> None:
     assert body["model_id"] == _MV
     assert body["nano_model_id"] == _MV
     assert body["package_sha256"] == "d" * 64
-    assert body["cached_package"].endswith(f"{_MV}/package.zip")
+    assert body["cached_package"].replace("\\", "/").endswith(f"{_MV}/package.zip")
     assert body["scope"] == "device"
     # The nano target from the request body reached push_to_nano.
     assert _FakeDeployer.pushed == {"url": "http://nano:8500", "token": "tok"}
