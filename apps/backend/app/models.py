@@ -65,11 +65,24 @@ class FleetView(BaseModel):
 
 
 class InferenceImageRequest(BaseModel):
-    """POST body for setting the inference image on a device."""
+    """POST body for setting the inference image on a device.
+
+    ``nano_base_url`` opts into **coordinated shutdown**: when set, the fleet asks that
+    nano to drain (finalize any in-progress recording, stop the pipeline) and confirm
+    BEFORE the image is patched — so an image swap never drops a recording. When empty,
+    the image is patched immediately (the original behavior).
+    """
 
     model_config = ConfigDict(extra="forbid")
 
     image: str = Field(min_length=1, description="Full container image ref including tag.")
+    nano_base_url: str = Field(
+        default="",
+        description="Reachable eai-nano backend URL to drain before the swap; empty = patch now.",
+    )
+    nano_token: str = Field(
+        default="", description="Bearer token for the nano backend, if enabled."
+    )
 
 
 class ImageSetScope(StrEnum):
@@ -85,7 +98,12 @@ class ImageSetScope(StrEnum):
 
 
 class InferenceImageResponse(BaseModel):
-    """Response from ``POST /api/fleet/devices/{id}/inference/image``."""
+    """Response from ``POST /api/fleet/devices/{id}/inference/image``.
+
+    ``coordinated`` is True when a nano drain ran before the patch (``nano_base_url`` was
+    given); ``recordings_finalized`` is how many in-progress recordings the nano saved
+    during that drain (None when uncoordinated).
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -93,6 +111,8 @@ class InferenceImageResponse(BaseModel):
     image: str
     scope: ImageSetScope
     note: str
+    coordinated: bool = False
+    recordings_finalized: int | None = None
 
 
 class InferenceImageInfo(BaseModel):

@@ -73,5 +73,11 @@ class Settings(BaseSettings):
     inference_daemonset: str = "eai-nano-inference"
     inference_container: str = "inference"
 
+    # --- Coordinated shutdown (set-image with an optional nano_base_url) ---
+    # When set-image is given a nano_base_url, the fleet asks that nano to drain
+    # (finalize any in-progress recording, stop the pipeline) BEFORE the image is
+    # patched, so no session state is lost. This bounds that pre-change handshake.
+    nano_shutdown_timeout_s: float = 30.0
+
 
 settings = Settings()

@@ -128,6 +128,11 @@ export type InferenceImageInfo = {
  * InferenceImageRequest
  *
  * POST body for setting the inference image on a device.
+ *
+ * ``nano_base_url`` opts into **coordinated shutdown**: when set, the fleet asks that
+ * nano to drain (finalize any in-progress recording, stop the pipeline) and confirm
+ * BEFORE the image is patched — so an image swap never drops a recording. When empty,
+ * the image is patched immediately (the original behavior).
  */
 export type InferenceImageRequest = {
     /**
@@ -136,12 +141,28 @@ export type InferenceImageRequest = {
      * Full container image ref including tag.
      */
     image: string;
+    /**
+     * Nano Base Url
+     *
+     * Reachable eai-nano backend URL to drain before the swap; empty = patch now.
+     */
+    nano_base_url?: string;
+    /**
+     * Nano Token
+     *
+     * Bearer token for the nano backend, if enabled.
+     */
+    nano_token?: string;
 };
 
 /**
  * InferenceImageResponse
  *
  * Response from ``POST /api/fleet/devices/{id}/inference/image``.
+ *
+ * ``coordinated`` is True when a nano drain ran before the patch (``nano_base_url`` was
+ * given); ``recordings_finalized`` is how many in-progress recordings the nano saved
+ * during that drain (None when uncoordinated).
  */
 export type InferenceImageResponse = {
     /**
@@ -157,6 +178,14 @@ export type InferenceImageResponse = {
      * Note
      */
     note: string;
+    /**
+     * Coordinated
+     */
+    coordinated?: boolean;
+    /**
+     * Recordings Finalized
+     */
+    recordings_finalized?: number | null;
 };
 
 /**

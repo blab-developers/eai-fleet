@@ -33,6 +33,7 @@ from app.models import (
     RecordingsPullRequest,
     RecordingsPullResponse,
 )
+from app.nano import NanoClient, NanoUnavailable
 from app.prometheus import PrometheusClient, PrometheusUnavailable, build_fleet_view
 from app.recordings_pull import RecordingsPuller
 
@@ -116,10 +117,34 @@ def set_inference_image(
     Errors:
       404 — ``device_id`` is not in the current fleet view. Stops typos from
             triggering a fleet-wide image swap from the wrong UI button.
-      502 — the central Prometheus query (used to validate ``device_id``) or
-            the k8s PATCH itself failed.
+      502 — the central Prometheus query (used to validate ``device_id``), the
+            optional pre-change nano drain (when ``nano_base_url`` is set), or the
+            k8s PATCH itself failed. A failed drain leaves the image unchanged.
     """
     _assert_device_exists(device_id, prometheus)
+
+    # Coordinated shutdown: when a nano URL is supplied, drain that nano and REQUIRE its
+    # confirmation before touching the image — a failed/unconfirmed drain must leave the
+    # image unchanged, so no in-progress recording is lost to the pod roll.
+    coordinated = False
+    recordings_finalized: int | None = None
+    if request.nano_base_url:
+        nano = NanoClient(
+            request.nano_base_url, request.nano_token, settings.nano_shutdown_timeout_s
+        )
+        try:
+            ack = nano.prepare_shutdown()
+        except NanoUnavailable as e:
+            raise HTTPException(
+                status_code=502, detail=f"pre-change shutdown failed; image NOT changed: {e}"
+            ) from e
+        if not ack.drained:
+            raise HTTPException(
+                status_code=502,
+                detail="nano did not confirm it drained; image NOT changed",
+            )
+        coordinated = True
+        recordings_finalized = ack.recordings_finalized
 
     try:
         k8s.patch_daemonset_image(
@@ -131,13 +156,20 @@ def set_inference_image(
     except KubernetesUnavailable as e:
         raise HTTPException(status_code=502, detail=str(e)) from e
 
+    drained_note = (
+        f" Nano drained first ({recordings_finalized} recording(s) finalized)."
+        if coordinated
+        else ""
+    )
     return InferenceImageResponse(
         device_id=device_id,
         image=request.image,
         scope=ImageSetScope.FLEET_WIDE,
+        coordinated=coordinated,
+        recordings_finalized=recordings_finalized,
         note=(
             f"Inference DaemonSet {settings.inference_namespace}/"
-            f"{settings.inference_daemonset} patched. Today this updates every "
+            f"{settings.inference_daemonset} patched.{drained_note} Today this updates every "
             "Nano in the fleet (Spec 008 demo scope); true per-device targeting "
             "lands with the per-Nano overlay."
         ),

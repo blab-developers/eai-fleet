@@ -55,8 +55,9 @@ export const listDevices = <ThrowOnError extends boolean = false>(options?: Opti
  * Errors:
  * 404 — ``device_id`` is not in the current fleet view. Stops typos from
  * triggering a fleet-wide image swap from the wrong UI button.
- * 502 — the central Prometheus query (used to validate ``device_id``) or
- * the k8s PATCH itself failed.
+ * 502 — the central Prometheus query (used to validate ``device_id``), the
+ * optional pre-change nano drain (when ``nano_base_url`` is set), or the
+ * k8s PATCH itself failed. A failed drain leaves the image unchanged.
  */
 export const setInferenceImage = <ThrowOnError extends boolean = false>(options: Options<SetInferenceImageData, ThrowOnError>): RequestResult<SetInferenceImageResponses, SetInferenceImageErrors, ThrowOnError> => (options.client ?? client).post<SetInferenceImageResponses, SetInferenceImageErrors, ThrowOnError>({
     url: '/api/fleet/devices/{device_id}/inference/image',
